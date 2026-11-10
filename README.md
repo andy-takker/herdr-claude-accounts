@@ -13,8 +13,7 @@ Herdr terminal plugin, and a standalone CLI. No Python dependencies or daemon.
 [Contributing](CONTRIBUTING.md)
 
 This is an independent community project. It is not affiliated with Anthropic
-or Herdr. The first public release is being prepared; no published release is
-required to use a source checkout.
+or Herdr. Install from source; no tagged release is required.
 
 ## Features
 
@@ -54,9 +53,11 @@ only the integration you use, or both. See [tested versions](docs/compatibility.
 
 ### Core and shell launcher
 
-Clone this repository into a **permanent directory**, then run from its root:
+Clone this repository into a **permanent directory**:
 
 ```sh
+git clone https://github.com/andy-takker/herdr-claude-accounts.git
+cd herdr-claude-accounts
 python3 manager.py install-shell
 ```
 
