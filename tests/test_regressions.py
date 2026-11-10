@@ -125,9 +125,8 @@ elif sys.argv[1:2] == ['agents']:
             wait_for(lambda: len(self.store.read()['accounts']) == 2)
             new_id = self.store.read()['accounts'][1]['id']
             wait_for(lambda: self.store.cached().get(new_id, {}).get('auth', {}).get('state') == 'saved')
-            # Wait for the new menu frame, not for a fixed sleep.
-            output = b''
-            wait_for(lambda: b'New' in output and b'Sessions:' in output)
+            # Curses emits incremental updates; retain output and wait for login completion.
+            wait_for(lambda: b'Press Enter to select this account.' in output)
             os.write(master, b'\n')
             deadline = time.monotonic() + 2
             while self.store.read()['selected'] is None and time.monotonic() < deadline:

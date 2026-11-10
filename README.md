@@ -1,49 +1,100 @@
-# Claude Accounts for Herdr
+<p align="center">
+  <img src="docs/assets/hero.svg" alt="Switch Claude Code accounts, compare available quota, and resume the same conversation with shared history and separate sign-ins." width="1280" />
+</p>
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-3776ab)](docs/compatibility.md)
-[![Platform](https://img.shields.io/badge/platform-macOS-black)](docs/compatibility.md)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<h1 align="center">Claude Code Account Switcher for Herdr</h1>
 
-**Switch Claude Code accounts from Herdr, keep your settings, and continue the
-same conversation across accounts.** Includes a native Herdr app dialog, a
-Herdr terminal plugin, and a standalone CLI. No Python dependencies or daemon.
+<p align="center">
+  <strong>Multiple accounts. One conversation history.</strong><br />
+  Switch Claude Code accounts, compare usage limits, and resume your work with the account you choose.<br />
+  Native Herdr app · terminal UI · standalone CLI
+</p>
 
-[Installation](#installation) · [Keyboard shortcuts](#keyboard-shortcuts) ·
-[Data and privacy](#data-and-privacy) · [Compatibility](docs/compatibility.md) ·
-[Contributing](CONTRIBUTING.md)
+<p align="center">
+  <a href="https://github.com/andy-takker/herdr-claude-accounts/actions/workflows/ci.yml"><img src="https://github.com/andy-takker/herdr-claude-accounts/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="docs/compatibility.md"><img src="https://img.shields.io/badge/Python-3.9%2B-3776ab" alt="Python 3.9 or newer" /></a>
+  <a href="docs/compatibility.md"><img src="https://img.shields.io/badge/platform-macOS-252722" alt="macOS" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-c45b35" alt="MIT license" /></a>
+</p>
 
-This is an independent community project. It is not affiliated with Anthropic
-or Herdr. Install from source; no tagged release is required.
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#switch-accounts-and-resume-your-work">Switch &amp; resume</a> ·
+  <a href="#installation">Herdr setup</a> ·
+  <a href="#faq">FAQ</a> ·
+  <a href="https://github.com/andy-takker/herdr-claude-accounts/issues">Feedback</a>
+</p>
 
-## Features
+## Your account changes. Your work comes with you.
 
-- Add independent profiles and sign in through Claude's browser login.
-- Select the account used by **new Claude launches**, including external terminals.
-- Share user settings, project trust decisions already accepted by you, skills,
-  hooks, commands and MCP definitions. Account credentials stay separate.
-- Optionally merge existing conversations into the system profile and share
-  transcripts, project memory, subagent context, attachments and checkpoints.
-- See each account's available quota and reset times: five-hour, weekly and
-  model-specific windows. Usage is cached for five minutes; refresh one account
-  on demand. Colors change at 70%, 80% and 90% used.
-- Expand active sessions inside each account card. Status probes share a
-  15-second cache across the CLI, TUI and GUI.
-- Cancel browser sign-in, remove profiles without deleting their data, and
-  restore removed profiles. Removing an account selects System default.
-- System default stays first; managed profiles follow their creation order.
-- English interface, local times formatted as `HH:MM dd.mm.yyyy`.
+Already use separate Claude accounts for personal work, a team, or different
+projects? Keep their sign-ins independent while choosing which account starts
+your next Claude process. When you opt into shared history, your conversations
+and project context are available across profiles.
 
-Example data (not a live account):
+**Herdr is optional.** The standalone CLI and terminal menu work in an ordinary
+macOS terminal. No Python runtime dependencies, background daemon, or Orca
+installation required.
 
-```text
-Claude Accounts
-Selected: Work
+| What you need | What you get |
+| --- | --- |
+| **Switch Claude accounts** | Browser sign-in once per profile; choose an account from the GUI, TUI or CLI. |
+| **Continue the same task** | Opt-in shared history for `--resume` and `--continue`, with migration backups. |
+| **Compare available usage** | Five-hour, weekly and model-specific quota windows, reset times and per-account refresh. |
+| **Keep your setup** | Shared settings, skills, hooks, commands, project trust decisions and MCP definitions. |
+| **See active sessions** | Collapsible session lists inside each account card; running processes keep their original account. |
+| **Manage profiles** | Cancel sign-in, remove without erasing profile data, and restore removed accounts. |
 
-  * Work
-    sign-in saved (local) | user@example.com
-    [######    ]  Weekly               40% free  resets 09:00 12.11.2026
-    ▸ Sessions: 2
+Usage is cached for **5 minutes**. Shared status probes use a **15-second cache**.
+Quota bars change from blue to yellow, orange and red at 70%, 80% and 90% used.
+The illustration above uses fictional data; it is not a screenshot.
+
+## Quick start
+
+You need **macOS**, **Python 3.9+**, and a working **Claude Code** installation.
+Keep the checkout in a permanent directory:
+
+```sh
+git clone https://github.com/andy-takker/herdr-claude-accounts.git
+cd herdr-claude-accounts
+python3 manager.py install-shell
 ```
+
+Open a **new terminal**, then:
+
+```sh
+claude-accounts add Work       # Sign in through your browser
+claude-accounts ui             # Select an account and inspect usage
+```
+
+Settings sharing is enabled by the installer. Conversation history sharing is
+an explicit, separate step: read [Shared conversations](#shared-conversations),
+then run `claude-accounts share-history` if you want one common history.
+
+Want the native dialog or keyboard shortcut? Follow the
+[Herdr app](#native-herdr-app) or [Herdr TUI](#herdr-tui) setup below.
+
+## Switch accounts and resume your work
+
+1. Exit the Claude process for the conversation you want to continue.
+2. Open `claude-accounts ui` or the Herdr account menu. Compare available usage
+   and select your next account.
+3. In the same project directory, resume after enabling shared history:
+
+   ```sh
+   claude --resume SESSION_ID
+   # Or continue the most recent conversation in this project:
+   claude --continue
+   ```
+
+Check `/status` in Claude to confirm the account. A new process reads the current
+selection; switching does not change the credentials of a process already running.
+Old terminal tabs may need their PATH refreshed — see [Troubleshooting](#troubleshooting).
+
+> **Shared context, separate credentials.** This is an account manager, not a
+> way to increase an account's quota. Claude authentication, subscription limits
+> and organization policies still apply. External MCP OAuth may need a separate
+> sign-in for each profile.
 
 ## Installation
 
@@ -270,6 +321,78 @@ history and backups remain; disabling the UI does not undo a history migration.
   bypasses the five-minute usage cache for that account only.
 - A failed add with a "profile retained" warning already created a profile.
   Resolve the settings conflict and sign into that row instead of adding again.
+
+## FAQ
+
+<details>
+<summary><strong>Can I switch Claude Code accounts without losing my conversation?</strong></summary>
+
+Yes, after enabling shared history. Exit the old Claude process, select the
+next account and run `claude --resume SESSION_ID` from the same project. The
+manager shares local conversation files; it does not swap credentials inside
+an already running process. Keep one writer per conversation.
+
+</details>
+
+<details>
+<summary><strong>Does this work without Herdr or Orca?</strong></summary>
+
+Yes. Use `claude-accounts ui` in your terminal, or the standalone CLI. Herdr
+adds the native app dialog, sidebar indicator and terminal overlay. Orca is
+not required for creating or managing profiles.
+
+</details>
+
+<details>
+<summary><strong>Will my settings and MCP servers follow me?</strong></summary>
+
+Shared settings include supported user preferences, skills, hooks, commands,
+project trust decisions and MCP definitions. External MCP OAuth credentials
+remain separate, so some servers may ask you to sign in for a new profile.
+
+</details>
+
+<details>
+<summary><strong>Does usage polling consume model tokens?</strong></summary>
+
+Normal status and usage polling sends no model message. The separate
+<strong>Check access</strong> action explicitly runs a short model request and
+uses quota. Usage availability depends on Claude's control protocol.
+
+</details>
+
+<details>
+<summary><strong>Are passwords or OAuth tokens stored in this repository?</strong></summary>
+
+No. Claude manages authentication; private profile data lives outside the source
+checkout. The manager does not copy OAuth credentials or Keychain entries
+between accounts. Read [Data and privacy](#data-and-privacy) before sharing logs
+or backups.
+
+</details>
+
+<details>
+<summary><strong>Does it support Windows or Linux?</strong></summary>
+
+The supported installation targets macOS. Backend tests also run on Linux CI;
+that is not a claim of complete Linux desktop integration or Windows support.
+See [Compatibility](docs/compatibility.md).
+
+</details>
+
+## Help other Claude Code users find it
+
+If this solves your multi-account workflow, **star the repository** or share it
+with someone who switches between Claude accounts. Found a rough edge?
+[Open an issue](https://github.com/andy-takker/herdr-claude-accounts/issues/new/choose)
+with redacted steps and versions. Contributions are welcome — start with
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Built by [Sergey Natalenko / @andy-takker](https://github.com/andy-takker).
+Also using OpenCode? See
+[Subagents Sidebar](https://github.com/andy-takker/opencode-plugin-subagents-sidebar).
+
+Independent community project; not affiliated with Anthropic or Herdr.
 
 ## Development
 

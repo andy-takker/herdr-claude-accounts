@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+<title id="title">Claude Accounts for Herdr — Switch accounts. Keep your context.</title>
+<desc id="desc">An illustration of two independent Claude accounts sharing conversation history. System default has 6 percent weekly quota free; Work has 73 percent free and is selected. Continue using claude --resume.</desc>
+<rect width="1280" height="640" rx="24" fill="#f5f2eb"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<rect x="48" y="46" width="38" height="38" rx="10" fill="#c45b35"/>
+<path d="M58 61h18m-5-5 5 5-5 5M76 71H58m5-5-5 5 5 5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="102" y="72" font-size="18" font-weight="700" letter-spacing="2" fill="#252722">CLAUDE ACCOUNTS</text>
+<text x="1216" y="72" text-anchor="end" font-size="16" fill="#65685f">FOR HERDR + YOUR TERMINAL</text>
+<text x="48" y="199" font-size="68" font-weight="700" letter-spacing="-2.5" fill="#252722">Switch accounts.</text>
+<text x="48" y="279" font-size="68" font-weight="700" letter-spacing="-2.5" fill="#c45b35">Keep your context.</text>
+<text x="51" y="334" font-size="24" fill="#555b52">Shared conversations. Separate sign-ins.</text>
+<text x="51" y="370" font-size="24" fill="#555b52">See your quota. Choose your next account.</text>
+<line x1="51" y1="410" x2="610" y2="410" stroke="#d8d8cc"/>
+<text x="51" y="446" font-size="17" font-weight="700" fill="#555b52">GUI + TUI + CLI</text>
+<text x="257" y="446" font-size="17" fill="#555b52">macOS</text>
+<text x="370" y="446" font-size="17" fill="#555b52">Open source / MIT</text>
+<rect x="714" y="125" width="518" height="337" rx="18" fill="#ffffff" stroke="#d8d8cc"/>
+<text x="742" y="166" font-size="19" font-weight="700" fill="#252722">Available this week</text>
+<text x="1204" y="165" text-anchor="end" font-size="12" fill="#777b72">ILLUSTRATIVE DATA</text>
+<line x1="742" y1="187" x2="1204" y2="187" stroke="#eeeeea"/>
+<text x="742" y="224" font-size="20" fill="#252722">System default</text>
+<text x="1204" y="224" text-anchor="end" font-size="20" font-weight="700" fill="#bc403e">6% free</text>
+<rect x="742" y="242" width="462" height="7" rx="3.5" fill="#eeede8"/>
+<rect x="742" y="242" width="434" height="7" rx="3.5" fill="#d94b47"/>
+<rect x="730" y="275" width="486" height="104" rx="12" fill="#eef3ff"/>
+<circle cx="754" cy="308" r="9" fill="#3369e8"/>
+<path d="m750 308 3 3 5-6" fill="none" stroke="white" stroke-width="2"/>
+<text x="775" y="315" font-size="20" font-weight="700" fill="#252722">Work</text>
+<text x="1204" y="315" text-anchor="end" font-size="20" font-weight="700" fill="#295aca">73% free</text>
+<rect x="742" y="337" width="462" height="7" rx="3.5" fill="#dce5f7"/>
+<rect x="742" y="337" width="125" height="7" rx="3.5" fill="#3369e8"/>
+<text x="742" y="364" font-size="13" fill="#536688">Selected for new launches</text>
+<path d="M748 413v-7a7 7 0 0 1 14 0v7m-18 0h22v18h-22z" fill="none" stroke="#65685f" stroke-width="1.7" stroke-linejoin="round"/>
+<text x="781" y="424" font-size="17" fill="#555b52">Independent account credentials</text>
+<rect x="48" y="501" width="1184" height="91" rx="14" fill="#252722"/>
+<text x="76" y="536" font-size="12" font-weight="700" letter-spacing="2" fill="#b8c2ac">ONE SHARED CONVERSATION HISTORY</text>
+<text x="76" y="568" font-family="Menlo, Consolas, monospace" font-size="23" fill="#ffffff"><tspan fill="#d8a481">$ </tspan>claude --resume &lt;session-id&gt;</text>
+<text x="1204" y="554" text-anchor="end" font-size="16" fill="#b8c2ac">Same task. Your chosen account.</text>
+</g>
+</svg>
