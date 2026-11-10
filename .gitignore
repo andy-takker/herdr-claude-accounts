@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.superpowers/
+.DS_Store
+.venv/
+.env
+.env.*
+dist/
+herdr-app/gpui-kit.d.ts
+herdr-app/jsconfig.json

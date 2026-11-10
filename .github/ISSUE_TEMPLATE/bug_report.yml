@@ -1,0 +1,25 @@
+name: Bug report
+description: Report a reproducible problem with synthetic or redacted data.
+body:
+  - type: markdown
+    attributes:
+      value: Never attach credentials, raw conversation files or the manager data directory.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python, Claude Code, Herdr TUI or Herdr app versions, and installation method.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include expected and actual behavior. Remove private account names and paths.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Relevant errors only; no tokens or private transcripts.

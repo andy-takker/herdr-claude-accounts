@@ -1,0 +1,5 @@
+{
+  "place": "none",
+  "title": "Claude Accounts",
+  "overlay": { "kind": "dialog", "width": 760, "height": 720 }
+}

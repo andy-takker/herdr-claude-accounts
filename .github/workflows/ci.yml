@@ -1,0 +1,41 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            python: '3.9'
+          - os: macos-latest
+            python: '3.13'
+          - os: ubuntu-latest
+            python: '3.13'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: make check
+      - run: make package
+      - name: Test committed source archive
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/source-archive"
+          tar -xzf dist/herdr-claude-accounts.tar.gz -C "${RUNNER_TEMP}/source-archive"
+          make -C "${RUNNER_TEMP}/source-archive/herdr-claude-accounts" test
