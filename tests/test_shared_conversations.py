@@ -4,9 +4,9 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from accounts import AccountError, Store
-from shared_settings import synchronize
-from shared_conversations import prepare
+from herdr_claude_accounts.accounts import AccountError, Store
+from herdr_claude_accounts.shared_settings import synchronize
+from herdr_claude_accounts.shared_conversations import prepare
 
 
 class SharedConversationsTests(unittest.TestCase):

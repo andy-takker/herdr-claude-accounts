@@ -148,7 +148,7 @@ class Store:
                     'record': str(self.root / record)}
 
     def enable_shared_settings(self, home=None):
-        from shared_settings import synchronize
+        from herdr_claude_accounts.shared_settings import synchronize
         home = Path(home or Path.home()).absolute()
         source = home / '.claude'
         config = source / '.config.json'
@@ -206,7 +206,7 @@ class Store:
         return account
 
     def enable_shared_conversations(self):
-        from shared_settings import synchronize
+        from herdr_claude_accounts.shared_settings import synchronize
         shared = self.read().get('shared_settings')
         if not shared:
             raise AccountError('Enable shared settings before sharing conversation history.')
@@ -218,7 +218,7 @@ class Store:
         return result
 
     def sync_settings(self):
-        from shared_settings import synchronize
+        from herdr_claude_accounts.shared_settings import synchronize
         state = self.read()
         shared = state.get('shared_settings')
         if shared:

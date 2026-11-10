@@ -10,3 +10,7 @@ real OAuth, paid model requests, or user-profile migrations as test fixtures.
 Preserve private credential boundaries, deterministic account routing, terminal
 cleanup, cancellation, backups and conflict detection. Add a regression test
 for behavior fixes. Do not commit generated SDK declarations or runtime data.
+
+Python code belongs in `herdr_claude_accounts/`. Packaging/entrypoint changes
+require `make wheel-check` using a current pip in a virtual environment.
+Keep `pyproject.toml` and `herdr-plugin.toml` versions aligned.

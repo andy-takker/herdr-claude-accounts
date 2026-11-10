@@ -14,9 +14,9 @@ import termios
 import time
 import unittest
 
-from accounts import Store
-from claude_cli import Claude
-from manager import refresh_account
+from herdr_claude_accounts.accounts import Store
+from herdr_claude_accounts.claude_cli import Claude
+from herdr_claude_accounts.manager import refresh_account
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -42,7 +42,7 @@ class RegressionTests(unittest.TestCase):
 
     def test_cli_relogin_clears_previous_online_verification(self):
         self.store.cache(self.account['id'], 'online', {'state': 'verified', 'checked_at': 1})
-        p = subprocess.run([sys.executable, str(REPO / 'manager.py'), '--root', str(self.store.root),
+        p = subprocess.run([sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(self.store.root),
                             'login', self.account['id']], capture_output=True, text=True)
         self.assertEqual(p.returncode, 0, p.stderr)
         data = self.store.cached()[self.account['id']]
@@ -63,7 +63,7 @@ class RegressionTests(unittest.TestCase):
                 self.write_fixture()
                 master, slave = pty.openpty()
                 fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 28, 100, 0, 0))
-                proc = subprocess.Popen([sys.executable, str(REPO / 'manager.py'), '--root', str(self.store.root), 'ui'],
+                proc = subprocess.Popen([sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(self.store.root), 'ui'],
                                         stdin=slave, stdout=slave, stderr=slave,
                                         env=dict(os.environ, TERM='xterm-256color'))
                 child_pid = None
@@ -104,7 +104,7 @@ elif sys.argv[1:2] == ['agents']:
 ''')
         master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 35, 100, 0, 0))
-        proc = subprocess.Popen([sys.executable, str(REPO / 'manager.py'), '--root', str(self.store.root), 'ui'],
+        proc = subprocess.Popen([sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(self.store.root), 'ui'],
                                 stdin=slave, stdout=slave, stderr=slave,
                                 env=dict(os.environ, TERM='xterm-256color'))
         output = b''

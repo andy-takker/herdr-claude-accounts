@@ -8,3 +8,5 @@ __pycache__/
 dist/
 herdr-app/gpui-kit.d.ts
 herdr-app/jsconfig.json
+build/
+*.egg-info/

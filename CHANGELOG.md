@@ -15,3 +15,6 @@ Initial public-source preparation. No GitHub release has been published yet.
 - Regression coverage for concurrency, migration, cancellation and PTY behavior.
 - Recreate a missing shared context directory when profile links still point to
   the expected location, so a removed `tasks` directory does not block switching.
+- Package the backend under `herdr_claude_accounts/` with standard Python
+  metadata, module/console entrypoints and a clean-environment wheel check.
+- Add README artwork, a switch-and-resume walkthrough, FAQ and Linux test scope.

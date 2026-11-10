@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from accounts import Store, AccountError
+from herdr_claude_accounts.accounts import Store, AccountError
 
 
 class StoreTests(unittest.TestCase):

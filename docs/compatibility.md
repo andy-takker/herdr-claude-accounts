@@ -2,7 +2,8 @@
 
 | Component | Requirement / local validation |
 | --- | --- |
-| OS | macOS; local integration checked on Apple Silicon |
+| macOS | Real Claude/Herdr integration checked on Apple Silicon |
+| Linux | Python backend and TUI tested on Ubuntu CI; live Claude login and Herdr integration not yet verified |
 | Python | 3.9+; local full suite checked with Python 3.9 |
 | Claude Code | `auth`, `agents --json`, control-protocol usage; locally checked with 2.1.322 |
 | Herdr TUI | 0.9.5+ manifest requirement; locally checked with 0.9.5 |
@@ -10,18 +11,23 @@
 | Node | 22+ for development tests only |
 
 Herdr TUI and Herdr app use different configuration and extension mechanisms.
-The project is macOS-targeted even when backend tests run on a Linux CI runner.
+The CLI uses POSIX APIs. Linux users need a Python build with curses and a
+working Claude executable. The installer configures zsh and fish; bash users
+must add the launcher directory to PATH manually. The Herdr TUI manifest
+currently advertises macOS until its Linux host integration is verified.
 Do not infer Windows support from Python portability: file locks, process
 signals and terminal integration use POSIX facilities.
 
-Local validation before publication includes 92 Python tests, the JavaScript
+Local validation before publication includes 93 Python tests, the JavaScript
 native-UI harness, Herdr's mod checker, temporary PTY flows and synthetic
 process-signal tests. History migration checks cover conflicts, backups, active
 writers, new files during copying, and interrupted cutover. The local source
 relocation is checked through the installed launcher and linked TUI manifest.
 
-CI is configured for Python 3.9/3.13 on macOS and Python 3.13 on Linux with Node
-24. It must actually complete on GitHub before any hosted-CI success is claimed.
+CI runs tests and source-archive checks for Python 3.9/3.13 on macOS and Python 3.13 on Linux with Node
+24. CI also builds a wheel and tests its installed entrypoints in a temporary
+environment outside the source checkout. See the repository Actions tab for
+the result of each commit.
 The Herdr desktop app is not installed in CI; its harness is not a replacement
 for a manual host smoke test.
 

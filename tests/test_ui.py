@@ -14,8 +14,8 @@ import unittest
 import threading
 from unittest.mock import patch
 
-from accounts import Store
-from ui import render_lines, load_rows, launch_tab, launch_command, usage_band, sign_in
+from herdr_claude_accounts.accounts import Store
+from herdr_claude_accounts.ui import render_lines, load_rows, launch_tab, launch_command, usage_band, sign_in
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -54,7 +54,7 @@ class UiTests(unittest.TestCase):
                     self.calls.append(profile)
                     return {'state':'available','checked_at':1000,'windows':[
                         {'label':'Weekly','used_percent':80,'resets_at':2000}]}
-            with patch('ui.Claude',Client), patch('usage.time.time',return_value=1000):
+            with patch('herdr_claude_accounts.ui.Claude',Client), patch('herdr_claude_accounts.usage.time.time',return_value=1000):
                 rows=load_rows(store,threading.Event(),True)
                 load_rows(Store(root),threading.Event(),True)
             self.assertEqual([r['id'] for r in rows],[None,first['id'],second['id']])
@@ -74,7 +74,7 @@ class UiTests(unittest.TestCase):
     def test_color_boundaries_and_unconfirmed_login(self):
         self.assertEqual([usage_band(n) for n in (0, 69, 70, 79, 80, 89, 90, 100)],
                          [1, 1, 2, 2, 3, 3, 4, 4])
-        with patch('ui.upstream', return_value='/bin/echo'), patch('ui.login_account', return_value=(0, {'state': 'needs_login'})):
+        with patch('herdr_claude_accounts.ui.upstream', return_value='/bin/echo'), patch('herdr_claude_accounts.ui.login_account', return_value=(0, {'state': 'needs_login'})):
             self.assertIn('not confirmed', sign_in(None, threading.Event(), 'account'))
 
     def test_launch_uses_callers_workspace_and_pinned_quoted_command(self):
@@ -83,7 +83,7 @@ class UiTests(unittest.TestCase):
             calls = [subprocess.CompletedProcess([], 0, json.dumps({'result': {'root_pane': {'pane_id': 'w7:p3'}}})),
                      subprocess.CompletedProcess([], 0)]
             with patch.dict(os.environ, {'HERDR_ENV': '1', 'HERDR_WORKSPACE_ID': 'w7', 'HERDR_BIN_PATH': '/test/herdr'}), \
-                    patch('ui.subprocess.run', side_effect=calls) as run:
+                    patch('herdr_claude_accounts.ui.subprocess.run', side_effect=calls) as run:
                 launch_tab(store, None)
             create, start = [call.args[0] for call in run.call_args_list]
             self.assertEqual(create[:5], ['/test/herdr', 'tab', 'create', '--workspace', 'w7'])
@@ -103,7 +103,7 @@ class UiTests(unittest.TestCase):
             before = termios.tcgetattr(slave)
             env = dict(os.environ, TERM='xterm-256color', HOME=tmp, TUI_FIXTURE_ROOT=tmp)
             env.pop('CLAUDE_CONFIG_DIR', None)
-            proc = subprocess.Popen([sys.executable, str(REPO / 'manager.py'), '--root', str(store.root), 'ui'],
+            proc = subprocess.Popen([sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(store.root), 'ui'],
                                     stdin=slave, stdout=slave, stderr=slave, env=env)
             output = b''
             def wait_for(condition):
@@ -188,7 +188,7 @@ class UiTests(unittest.TestCase):
             self.addCleanup(os.close, slave)
             fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 28, 100, 0, 0))
             before = termios.tcgetattr(slave)
-            proc = subprocess.Popen([sys.executable, str(REPO / 'manager.py'), '--root', root, 'ui'],
+            proc = subprocess.Popen([sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', root, 'ui'],
                                     stdin=slave, stdout=slave, stderr=slave,
                                     env=dict(os.environ, TERM='xterm-256color'))
             output = b''

@@ -4,8 +4,8 @@ from pathlib import Path
 import shutil
 import sys
 
-from accounts import AccountError, Store
-from claude_cli import managed_environment, system_environment
+from herdr_claude_accounts.accounts import AccountError, Store
+from herdr_claude_accounts.claude_cli import managed_environment, system_environment
 
 
 def upstream(store, state=None):

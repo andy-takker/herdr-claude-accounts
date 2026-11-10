@@ -32,6 +32,7 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - run: make check
+      - run: make wheel-check
       - run: make package
       - name: Test committed source archive
         shell: bash

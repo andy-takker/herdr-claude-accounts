@@ -13,8 +13,8 @@
 <text x="51" y="370" font-size="24" fill="#555b52">See your quota. Choose your next account.</text>
 <line x1="51" y1="410" x2="610" y2="410" stroke="#d8d8cc"/>
 <text x="51" y="446" font-size="17" font-weight="700" fill="#555b52">GUI + TUI + CLI</text>
-<text x="257" y="446" font-size="17" fill="#555b52">macOS</text>
-<text x="370" y="446" font-size="17" fill="#555b52">Open source / MIT</text>
+<text x="257" y="446" font-size="17" fill="#555b52">POSIX CLI</text>
+<text x="404" y="446" font-size="17" fill="#555b52">Open source / MIT</text>
 <rect x="714" y="125" width="518" height="337" rx="18" fill="#ffffff" stroke="#d8d8cc"/>
 <text x="742" y="166" font-size="19" font-weight="700" fill="#252722">Available this week</text>
 <text x="1204" y="165" text-anchor="end" font-size="12" fill="#777b72">ILLUSTRATIVE DATA</text>

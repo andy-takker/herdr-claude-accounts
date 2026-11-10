@@ -5,8 +5,8 @@ import sys
 import tempfile
 import unittest
 
-from accounts import Store, AccountError
-from shell_install import install, uninstall
+from herdr_claude_accounts.accounts import Store, AccountError
+from herdr_claude_accounts.shell_install import install, uninstall
 
 
 class InstallTests(unittest.TestCase):

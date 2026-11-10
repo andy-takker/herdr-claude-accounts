@@ -3,6 +3,12 @@
 The same Python backend serves the native app, terminal overlay and shell.
 No background service is installed.
 
+Python modules live in `herdr_claude_accounts/`; `pyproject.toml` declares the
+package and console entrypoints. The flat package layout keeps source-checkout
+installation dependency-free. CI also installs the built wheel outside the
+checkout to catch missing files or accidental imports from the working tree.
+The module names below refer to files inside that package.
+
 | Component | Responsibility |
 | --- | --- |
 | `accounts.py` | Private profile registry, selection, removal/restoration and atomic metadata |

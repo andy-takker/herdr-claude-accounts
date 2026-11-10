@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-from accounts import Store
+from herdr_claude_accounts.accounts import Store
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -35,7 +35,7 @@ sys.exit(7)
         self.store.select(self.account['id'])
         self.env = {'PATH': os.environ['PATH'], 'HTTPS_PROXY': 'http://my-proxy'}
         self.command = [sys.executable, '-c',
-                        'import sys; from accounts import Store; from launcher import launch; '
+                        'import sys; from herdr_claude_accounts.accounts import Store; from herdr_claude_accounts.launcher import launch; '
                         'launch(Store(sys.argv[1]), sys.argv[2:])', str(self.store.root)]
 
     def run_launch(self, *args, env=None):
@@ -69,7 +69,7 @@ sys.exit(7)
 
     def test_pinned_launch_ignores_inherited_routing_without_changing_selection(self):
         second = self.store.create('Other')
-        command = [sys.executable, str(REPO / 'manager.py'), '--root', str(self.store.root), 'launch']
+        command = [sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(self.store.root), 'launch']
         for identity, expected in [(second['id'], str(self.store.profile(second['id']))), ('system', None)]:
             p = subprocess.run(command + [identity, '--', '--model', 'sonnet'], text=True,
                                input='', capture_output=True, env=dict(self.env, CLAUDE_CONFIG_DIR='/other'))
@@ -144,7 +144,7 @@ class ManagerTests(unittest.TestCase):
             store.configure_binary(binary)
             account = store.create('Work')
             profile = store.profile(account['id'])
-            command = [sys.executable, str(REPO / 'manager.py'), '--root', str(store.root),
+            command = [sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(store.root),
                        'login', account['id'], '--browser']
             for auth, success in [({'loggedIn':False}, False),
                                   ({'loggedIn':True,'authMethod':'claude.ai','email':'work@example.com'}, True)]:
@@ -159,7 +159,7 @@ class ManagerTests(unittest.TestCase):
 
     def test_cli_profile_selection_and_listing(self):
         with tempfile.TemporaryDirectory() as tmp:
-            command = [sys.executable, str(REPO / 'manager.py'), '--root', tmp]
+            command = [sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', tmp]
             def run(*args):
                 p = subprocess.run(command + list(args), text=True, capture_output=True)
                 self.assertEqual(p.returncode, 0, p.stderr)

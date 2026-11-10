@@ -14,6 +14,7 @@
   <a href="https://github.com/andy-takker/herdr-claude-accounts/actions/workflows/ci.yml"><img src="https://github.com/andy-takker/herdr-claude-accounts/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <a href="docs/compatibility.md"><img src="https://img.shields.io/badge/Python-3.9%2B-3776ab" alt="Python 3.9 or newer" /></a>
   <a href="docs/compatibility.md"><img src="https://img.shields.io/badge/platform-macOS-252722" alt="macOS" /></a>
+  <a href="docs/compatibility.md"><img src="https://img.shields.io/badge/Linux-CLI%2FTUI%20CI--tested-555b52" alt="Linux CLI and TUI tested in CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-c45b35" alt="MIT license" /></a>
 </p>
 
@@ -33,7 +34,7 @@ your next Claude process. When you opt into shared history, your conversations
 and project context are available across profiles.
 
 **Herdr is optional.** The standalone CLI and terminal menu work in an ordinary
-macOS terminal. No Python runtime dependencies, background daemon, or Orca
+terminal. macOS is verified locally; Linux CLI/TUI tests run in CI. No Python runtime dependencies, background daemon, or Orca
 installation required.
 
 | What you need | What you get |
@@ -51,13 +52,15 @@ The illustration above uses fictional data; it is not a screenshot.
 
 ## Quick start
 
-You need **macOS**, **Python 3.9+**, and a working **Claude Code** installation.
+You need **Python 3.9+** and a working **Claude Code** installation.
+**macOS** is verified locally; **Linux CLI/TUI** is tested in CI, with live
+Claude sign-in and Herdr integration still unverified on Linux.
 Keep the checkout in a permanent directory:
 
 ```sh
 git clone https://github.com/andy-takker/herdr-claude-accounts.git
 cd herdr-claude-accounts
-python3 manager.py install-shell
+python3 -m herdr_claude_accounts install-shell
 ```
 
 Open a **new terminal**, then:
@@ -98,7 +101,8 @@ Old terminal tabs may need their PATH refreshed — see [Troubleshooting](#troub
 
 ## Installation
 
-Requires macOS, Python 3.9+, and a working Claude Code installation. Herdr TUI
+Requires Python 3.9+ with curses support and a working Claude Code installation.
+See [platform support](docs/compatibility.md) for macOS and Linux. Herdr TUI
 and Herdr app are different programs with different plugin systems. Install
 only the integration you use, or both. See [tested versions](docs/compatibility.md).
 
@@ -109,7 +113,7 @@ Clone this repository into a **permanent directory**:
 ```sh
 git clone https://github.com/andy-takker/herdr-claude-accounts.git
 cd herdr-claude-accounts
-python3 manager.py install-shell
+python3 -m herdr_claude_accounts install-shell
 ```
 
 The installer remembers the original `claude` executable, including an existing
@@ -121,12 +125,14 @@ terminal afterward. `command -v claude` should point to
 If needed, specify the original executable explicitly:
 
 ```sh
-python3 manager.py install-shell --binary /absolute/path/to/original/claude
+python3 -m herdr_claude_accounts install-shell --binary /absolute/path/to/original/claude
 ```
 
 An alias or shell function named `claude` can bypass the launcher; installation
 refuses known conflicting zsh/fish definitions. Other shells can add the same
-launcher directory to PATH manually. Do not delete or move the checkout after
+launcher directory to PATH manually (for bash, add
+`export PATH="$HOME/.local/share/herdr-claude-accounts/bin:$PATH"` to `~/.bashrc`).
+Do not delete or move the checkout after
 installation without updating the linked plugin and reinstalling the launchers.
 
 ### Herdr TUI
@@ -252,7 +258,7 @@ claude-accounts restore ACCOUNT_UUID
 
 `add NAME --no-login` creates a profile for later sign-in. `login ACCOUNT_UUID`
 repeats login. Most commands return JSON. Use `--help` for the full interface.
-`python3 manager.py --root /absolute/path ...` selects a separate manager store;
+`python3 -m herdr_claude_accounts --root /absolute/path ...` selects a separate manager store;
 Claude's System default still refers to that process's HOME.
 
 ## Data and privacy
@@ -286,9 +292,17 @@ credential erasure. See [security policy](SECURITY.md).
 
 ## Update or disable
 
-Update the source checkout, run `make check`, and reopen the TUI menu. For the
+After updating the source checkout, reinstall the shell launchers from its root:
+
+```sh
+git pull --ff-only
+python3 -m herdr_claude_accounts install-shell
+```
+
+This also upgrades launchers from the earlier flat-module layout. Reopen the
+TUI menu. For the
 native app, copy the updated mod files again. When relocating the checkout,
-run `python3 manager.py install-shell` from its new location and relink Herdr.
+run `python3 -m herdr_claude_accounts install-shell` from its new location and relink Herdr.
 
 To disable shell/TUI integration:
 
@@ -374,8 +388,11 @@ or backups.
 <details>
 <summary><strong>Does it support Windows or Linux?</strong></summary>
 
-The supported installation targets macOS. Backend tests also run on Linux CI;
-that is not a claim of complete Linux desktop integration or Windows support.
+The Python CLI and terminal UI use POSIX APIs and pass automated tests on
+Ubuntu. macOS is also verified with real Claude and Herdr installations. Live
+Claude sign-in and Herdr integration on Linux have not been verified yet.
+Windows is not supported. For bash on Linux, add the launcher directory to
+PATH yourself; the installer configures zsh and fish.
 See [Compatibility](docs/compatibility.md).
 
 </details>
@@ -394,12 +411,44 @@ Also using OpenCode? See
 
 Independent community project; not affiliated with Anthropic or Herdr.
 
+## Repository layout
+
+```text
+herdr_claude_accounts/   Python package: profiles, sync, CLI and terminal UI
+herdr-app/              Native Herdr app mod and optional layout
+herdr-plugin.toml       Herdr TUI action and overlay manifest
+tests/                 Isolated backend, process and UI tests
+scripts/               Wheel-installation smoke check
+docs/                  Architecture, compatibility, release guide and artwork
+pyproject.toml         Package metadata, build backend and console commands
+```
+
+Run from a checkout with `python3 -m herdr_claude_accounts --help`.
+A wheel provides `claude-accounts` and `claude-accounts-launch`; Herdr's native
+mod and TUI manifest are distributed with the repository/source archive.
+The launcher command has a distinct name so a package install alone cannot
+replace your existing `claude` command. `install-shell` enables that routing.
+
 ## Development
 
 ```sh
 make check       # Python tests, native JS harness, whitespace check
 make package     # archive the committed HEAD into dist/
+make wheel-check # build a wheel and test installation outside the checkout
 ```
+
+For wheel builds, use a virtual environment with a current pip:
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+make wheel-check PYTHON=python
+```
+
+The wheel check installs into a disposable environment, creates a temporary
+profile and exercises both console commands and generated launchers. It does
+not use your real accounts. No package has been published to PyPI.
 
 Node 22+ is needed only for the JS test harness. There are no pip or npm runtime
 dependencies. Tests use temporary stores, CLI doubles and pseudoterminals; they

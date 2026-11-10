@@ -4,7 +4,7 @@ import math
 import time
 import uuid
 
-from accounts import AccountError
+from herdr_claude_accounts.accounts import AccountError
 
 
 def cached_usage(store, claude, account_id, auth, force=False):

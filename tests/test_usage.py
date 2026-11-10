@@ -4,9 +4,9 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from accounts import Store
-from usage import cached_usage, normalize
-from manager import parser, run
+from herdr_claude_accounts.accounts import Store
+from herdr_claude_accounts.usage import cached_usage, normalize
+from herdr_claude_accounts.manager import parser, run
 
 
 class UsageTests(unittest.TestCase):
@@ -24,20 +24,20 @@ class UsageTests(unittest.TestCase):
                     return {'state':'available', 'checked_at':1000, 'windows':[
                         {'label':'Weekly', 'used_percent':len(self.calls), 'resets_at':5000}]}
             cli = Client()
-            with patch('usage.time.time', return_value=1000):
+            with patch('herdr_claude_accounts.usage.time.time', return_value=1000):
                 cached_usage(store, cli, None, auth)
                 cached_usage(store, cli, account, auth)
-            with patch('usage.time.time', return_value=1299):
+            with patch('herdr_claude_accounts.usage.time.time', return_value=1299):
                 cached_usage(Store(tmp), cli, None, auth)
                 cached_usage(Store(tmp), cli, account, auth)
                 self.assertEqual(len(cli.calls), 2)
-                with patch('manager.client', return_value=cli):
+                with patch('herdr_claude_accounts.manager.client', return_value=cli):
                     result = run(parser().parse_args(['--root',tmp,'refresh-usage',account]))
                 self.assertEqual(result['windows'][0]['used_percent'], 3)
                 self.assertEqual(cli.calls, [None, store.profile(account), store.profile(account)])
                 cached_usage(Store(tmp), cli, None, auth)
                 self.assertEqual(len(cli.calls), 3)
-            with patch('usage.time.time', return_value=1300):
+            with patch('herdr_claude_accounts.usage.time.time', return_value=1300):
                 cached_usage(Store(tmp), cli, None, auth)
                 self.assertEqual(cli.calls[-1], None)
                 self.assertEqual(len(cli.calls), 4)
@@ -55,17 +55,17 @@ class UsageTests(unittest.TestCase):
                             {'label': 'Weekly', 'used_percent': 50, 'resets_at': 5000}]}
                 cli = Client()
                 if seeded:
-                    with patch('usage.time.time', return_value=1000):
+                    with patch('herdr_claude_accounts.usage.time.time', return_value=1000):
                         cached_usage(store, cli, None, auth)
                 previous = store._load('usage.json', {})
                 def cancelled(profile):
                     cli.cancel.set()
                     return {'state': 'unavailable', 'windows': [], 'reason': 'timeout'}
-                with patch('usage.time.time', return_value=1301), patch.object(cli, 'usage', side_effect=cancelled):
+                with patch('herdr_claude_accounts.usage.time.time', return_value=1301), patch.object(cli, 'usage', side_effect=cancelled):
                     cached_usage(store, cli, None, auth)
                 self.assertEqual(store._load('usage.json', {}), previous)
                 cli.cancel.clear()
-                with patch('usage.time.time', return_value=1301), patch.object(cli, 'usage', wraps=cli.usage) as probe:
+                with patch('herdr_claude_accounts.usage.time.time', return_value=1301), patch.object(cli, 'usage', wraps=cli.usage) as probe:
                     self.assertEqual(cached_usage(store, cli, None, auth)['state'], 'available')
                     self.assertEqual(probe.call_count, 1)
 
@@ -85,7 +85,7 @@ class UsageTests(unittest.TestCase):
                     cached_usage(store, Fresh(), None, auth, force=True)
                     self.cancel.set()
                     return {'state': 'unavailable', 'windows': [], 'reason': 'timeout'}
-            with patch('usage.time.time', return_value=1000):
+            with patch('herdr_claude_accounts.usage.time.time', return_value=1000):
                 cached_usage(store, Cancelled(), None, auth)
                 result = cached_usage(store, Fresh(), None, auth)
             self.assertEqual(result['state'], 'available')
@@ -110,12 +110,12 @@ class UsageTests(unittest.TestCase):
                     return {'state':'available','checked_at':1000,'windows':[
                         {'label':'Weekly','used_percent':93,'resets_at':5000}]}
             cli=Client(); auth={'state':'saved','email':'a@example.com','orgId':'org'}
-            with patch('usage.time.time',return_value=1000):
+            with patch('herdr_claude_accounts.usage.time.time',return_value=1000):
                 a=cached_usage(store,cli,None,auth)
                 cached_usage(store,cli,None,auth)
                 self.assertEqual(cli.calls,1)
                 self.assertEqual(a['windows'][0]['used_percent'],93)
-            with patch('usage.time.time',return_value=1301), patch.object(cli,'usage',return_value={
+            with patch('herdr_claude_accounts.usage.time.time',return_value=1301), patch.object(cli,'usage',return_value={
                     'state':'unavailable','reason':'timeout','checked_at':1301,'windows':[]}):
                 stale=cached_usage(store,cli,None,auth)
                 self.assertEqual(stale['state'],'stale')

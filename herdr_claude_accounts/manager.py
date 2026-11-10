@@ -7,9 +7,9 @@ from pathlib import Path
 import subprocess
 import sys
 
-from accounts import AccountError, Store
-from claude_cli import Claude, termination_signals
-from launcher import upstream
+from herdr_claude_accounts.accounts import AccountError, Store
+from herdr_claude_accounts.claude_cli import Claude, termination_signals
+from herdr_claude_accounts.launcher import upstream
 
 PLUGIN_ID = 'local.claude-accounts'
 
@@ -19,12 +19,12 @@ def client(store):
 
 
 def refresh_account(store, claude, account, local=True):
-    from status_cache import refresh
+    from herdr_claude_accounts.status_cache import refresh
     return refresh(store, claude, account, local)
 
 
 def check_account(store, claude, account_id):
-    from status_cache import check
+    from herdr_claude_accounts.status_cache import check
     return check(store, claude, account_id)
 
 
@@ -33,8 +33,8 @@ def login_account(store, claude, account_id, browser=False, cancel=None):
         return 130, {'state': 'cancelled'}
     store.sync_settings()
     profile = store.profile(account_id)
-    from status_cache import invalidate_login
-    from usage import invalidate
+    from herdr_claude_accounts.status_cache import invalidate_login
+    from herdr_claude_accounts.usage import invalidate
     invalidate_login(store, account_id)
     invalidate(store, account_id)
     status = None
@@ -98,13 +98,13 @@ def parser():
 def run(args):
     store = Store(args.root)
     if args.command in ('prepare-login', 'cancel-login'):
-        from login_attempt import LoginAttempt
+        from herdr_claude_accounts.login_attempt import LoginAttempt
         return (LoginAttempt.prepare(store, args.account) if args.command == 'prepare-login'
                 else LoginAttempt(store, args.attempt).cancel())
     if args.command == 'list':
         return store.read()
     if args.command == 'refresh-usage':
-        from usage import cached_usage
+        from herdr_claude_accounts.usage import cached_usage
         account_id = None if args.account == 'system' else args.account
         profile = store.profile(account_id) if account_id else None
         claude = client(store)
@@ -123,7 +123,7 @@ def run(args):
     if args.command == 'restore':
         return store.restore(args.account)
     if args.command == 'launch':
-        from launcher import launch
+        from herdr_claude_accounts.launcher import launch
         launch(store, args.args, account=args.account)
         return None
     if args.command == 'add':
@@ -136,7 +136,7 @@ def run(args):
         return account
     if args.command == 'login':
         if args.attempt:
-            from login_attempt import LoginAttempt
+            from herdr_claude_accounts.login_attempt import LoginAttempt
             if not args.browser:
                 raise AccountError('A login ticket requires --browser.')
             with LoginAttempt(store, args.attempt).running(args.account) as attempt:
@@ -162,12 +162,12 @@ def run(args):
             refresh_account(store, claude, a, local=args.command == 'status') for a in state['accounts']
         ]
         if args.command == 'status' and args.usage:
-            from usage import cached_usage
+            from herdr_claude_accounts.usage import cached_usage
             for row in [system] + accounts:
                 row['usage'] = cached_usage(store, claude, row['id'], row['auth'])
         return {'selected': store.read()['selected'], 'system': system, 'accounts': accounts}
     if args.command == 'ui':
-        from ui import show
+        from herdr_claude_accounts.ui import show
         show(store)
         return None
     if args.command == 'open-ui':
@@ -179,7 +179,7 @@ def run(args):
             raise AccountError('Herdr could not open the account manager.')
         return None
     if args.command in ('install-shell', 'uninstall-shell'):
-        from shell_install import install, uninstall
+        from herdr_claude_accounts.shell_install import install, uninstall
         if args.command == 'install-shell':
             return install(store, args.binary)
         return uninstall(store)

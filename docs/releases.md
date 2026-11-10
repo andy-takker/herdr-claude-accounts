@@ -1,15 +1,17 @@
 # Releases
 
-Version is declared in `herdr-plugin.toml`. The initial version is `0.1.0`;
+Version is declared in `pyproject.toml` and `herdr-plugin.toml`; keep them aligned. The initial version is `0.1.0`;
 publication and creation of a GitHub release are explicit maintainer actions.
-There is no npm or PyPI package and no automatic publishing workflow.
+The Python wheel is built locally/with CI; it is not published to PyPI.
+There is no automatic publishing workflow.
 
 ## Before publishing this repository
 
 1. Review the source and Git history being pushed for personal data. Push only
    the intended public branch; do not publish private development notes or
    unrelated local branches with `--all` or `--mirror`.
-2. Run `make check` and `herdr-app check herdr-app` on macOS. Commit the reviewed
+2. Run `make check`, `make wheel-check` in a build virtual environment, and
+   `herdr-app check herdr-app` on macOS. Commit the reviewed
    source, then run `make package`. This archives committed HEAD, not uncommitted
    working files. Extract the archive into a temporary directory and run
    `make test` there to verify the distributable itself.

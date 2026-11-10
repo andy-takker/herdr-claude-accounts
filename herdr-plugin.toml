@@ -9,10 +9,10 @@ platforms = ["macos"]
 id = "open"
 title = "Claude Accounts: manage accounts"
 contexts = ["workspace"]
-command = ["python3", "manager.py", "open-ui"]
+command = ["python3", "herdr_claude_accounts/__main__.py", "open-ui"]
 
 [[panes]]
 id = "accounts"
 title = "Claude Accounts"
 placement = "overlay"
-command = ["python3", "manager.py", "ui"]
+command = ["python3", "herdr_claude_accounts/__main__.py", "ui"]

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "herdr-claude-accounts"
+version = "0.1.0"
+description = "Switch Claude Code accounts with shared settings, conversation history, and usage tracking"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Sergey Natalenko"}]
+dependencies = []
+keywords = ["claude-code", "herdr", "account-switcher", "multi-account", "usage-tracking"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console :: Curses",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development",
+]
+
+[project.scripts]
+claude-accounts = "herdr_claude_accounts.manager:main"
+claude-accounts-launch = "herdr_claude_accounts.launcher:main"
+
+[project.urls]
+Homepage = "https://github.com/andy-takker/herdr-claude-accounts"
+Repository = "https://github.com/andy-takker/herdr-claude-accounts"
+Issues = "https://github.com/andy-takker/herdr-claude-accounts/issues"
+Changelog = "https://github.com/andy-takker/herdr-claude-accounts/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+packages = ["herdr_claude_accounts"]

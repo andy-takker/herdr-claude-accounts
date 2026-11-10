@@ -3,7 +3,7 @@ from contextlib import contextmanager
 import time
 import uuid
 
-from accounts import AccountError
+from herdr_claude_accounts.accounts import AccountError
 
 
 class LoginAttempt:

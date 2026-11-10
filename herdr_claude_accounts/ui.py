@@ -12,11 +12,11 @@ from pathlib import Path
 import shlex
 import subprocess
 
-from accounts import AccountError
-from claude_cli import Claude
-from launcher import upstream
-from manager import check_account, refresh_account, login_account
-from usage import cached_usage
+from herdr_claude_accounts.accounts import AccountError
+from herdr_claude_accounts.claude_cli import Claude
+from herdr_claude_accounts.launcher import upstream
+from herdr_claude_accounts.manager import check_account, refresh_account, login_account
+from herdr_claude_accounts.usage import cached_usage
 
 AUTH_LABELS = {'provider': 'API/provider sign-in', 'saved': 'sign-in saved (local)', 'verified': 'verified online',
                'needs_login': 'SIGN IN REQUIRED', 'limited': 'usage limit',
@@ -119,7 +119,7 @@ def sign_in(store, cancel, account_id):
 
 
 def launch_command(store, account_id):
-    return [sys.executable, str(Path(__file__).with_name('manager.py').resolve()),
+    return [sys.executable, str(Path(__file__).with_name('__main__.py').resolve()),
             '--root', str(store.root), 'launch', account_id or 'system']
 
 

@@ -8,8 +8,8 @@ import tempfile
 import time
 import unittest
 
-from accounts import Store
-from claude_cli import termination_signals
+from herdr_claude_accounts.accounts import Store
+from herdr_claude_accounts.claude_cli import termination_signals
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -54,7 +54,7 @@ elif stage == 'online':
         env = dict(PATH=os.environ['PATH'], HOME=str(self.root),
                    TEST_ROOT=str(self.root), WAIT_STAGE=stage)
         proc = subprocess.Popen(
-            [sys.executable, str(REPO / 'manager.py'), '--root', str(self.store.root)] + command,
+            [sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(self.store.root)] + command,
             env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         unrelated = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'],
                                      start_new_session=True)

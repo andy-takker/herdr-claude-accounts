@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import time
 
-from accounts import AccountError
+from herdr_claude_accounts.accounts import AccountError
 
 
 AUTH_ENV = (
@@ -197,7 +197,7 @@ class Claude:
         return self._status('unknown', 'online', reason=self.failure)
 
     def usage(self, profile):
-        from usage import normalize
+        from herdr_claude_accounts.usage import normalize
         requests = [{'type': 'control_request', 'request_id': identity,
                      'request': {'subtype': subtype}}
                     for identity, subtype in [('init', 'initialize'), ('usage', 'get_usage')]]

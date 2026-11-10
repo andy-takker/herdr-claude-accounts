@@ -5,8 +5,8 @@ import tempfile
 import time
 import unittest
 
-from accounts import Store, AccountError
-from shared_settings import synchronize
+from herdr_claude_accounts.accounts import Store, AccountError
+from herdr_claude_accounts.shared_settings import synchronize
 
 
 def put(path, data):

@@ -22,3 +22,7 @@ Keep user-facing strings in English. Update documentation and CHANGELOG for
 visible behavior changes. In a PR, describe the trigger, resulting behavior,
 validation, and any remaining limitation. Remove private paths, account emails,
 conversation excerpts and tokens from issue reports and screenshots.
+
+Python code lives in `herdr_claude_accounts/`. Use package-qualified imports.
+Run `make wheel-check` in a build virtual environment for packaging/entrypoint
+changes. Never rely on the repository being the caller's current directory.

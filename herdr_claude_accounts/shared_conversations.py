@@ -5,7 +5,7 @@ import os
 import shutil
 import stat
 
-from accounts import AccountError
+from herdr_claude_accounts.accounts import AccountError
 
 DIRECTORIES = ('projects', 'file-history', 'paste-cache', 'plans', 'tasks',
                'todos', 'agent-memory', 'image-cache', 'uploads')

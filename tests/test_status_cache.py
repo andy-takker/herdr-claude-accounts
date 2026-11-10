@@ -3,8 +3,8 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from accounts import Store
-from manager import refresh_account, check_account, login_account
+from herdr_claude_accounts.accounts import Store
+from herdr_claude_accounts.manager import refresh_account, check_account, login_account
 
 
 class StatusTests(unittest.TestCase):

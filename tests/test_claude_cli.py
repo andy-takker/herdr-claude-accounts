@@ -8,8 +8,8 @@ import time
 import unittest
 from unittest.mock import patch
 
-from accounts import AccountError
-from claude_cli import Claude, managed_environment
+from herdr_claude_accounts.accounts import AccountError
+from herdr_claude_accounts.claude_cli import Claude, managed_environment
 
 
 class ClaudeTests(unittest.TestCase):

@@ -7,8 +7,8 @@ import tempfile
 import time
 import unittest
 
-from accounts import Store, AccountError
-from login_attempt import LoginAttempt
+from herdr_claude_accounts.accounts import Store, AccountError
+from herdr_claude_accounts.login_attempt import LoginAttempt
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -38,7 +38,7 @@ class LoginCancellationTests(unittest.TestCase):
             pid = root / 'pid'
             (profile / 'fixture.json').write_text(json.dumps({'sleep':30,'pid_file':str(pid)}))
             (profile / 'history.jsonl').write_text('keep')
-            command = [sys.executable, str(REPO/'manager.py'), '--root', str(store.root)]
+            command = [sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(store.root)]
             def cli(*args):
                 p = subprocess.run(command+list(args),text=True,capture_output=True,timeout=5)
                 self.assertEqual(p.returncode,0,p.stderr)

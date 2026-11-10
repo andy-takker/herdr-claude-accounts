@@ -9,7 +9,7 @@ import threading
 import time
 import uuid
 
-from accounts import AccountError
+from herdr_claude_accounts.accounts import AccountError
 
 DIRECTORIES = ('skills', 'agents', 'commands', 'hooks', 'scripts', 'plugins',
                'output-styles', 'themes', 'rules')
@@ -255,7 +255,7 @@ def synchronize(store, source, source_state, *, share_conversations=False):
                     documents.append(doc)
                     value = shared_state(doc) if name == 'state' else doc
                     if name in ('settings.json', 'settings.local.json'):
-                        from claude_cli import AUTH_ENV
+                        from herdr_claude_accounts.claude_cli import AUTH_ENV
                         env = value.get('env', {})
                         if not isinstance(env, dict) or value.get('apiKeyHelper') or any(env.get(k) for k in AUTH_ENV):
                             raise AccountError('Shared settings contain an authentication override; keep account credentials separate.')
@@ -298,7 +298,7 @@ def synchronize(store, source, source_state, *, share_conversations=False):
 
         conversations = {}
         if share_conversations:
-            from shared_conversations import prepare
+            from herdr_claude_accounts.shared_conversations import prepare
             conversations = prepare(homes, backup_path)()
 
         for path, raw in writes.items():

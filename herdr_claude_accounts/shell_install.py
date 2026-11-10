@@ -6,8 +6,8 @@ import shlex
 import sys
 import tempfile
 
-from accounts import AccountError
-from launcher import upstream
+from herdr_claude_accounts.accounts import AccountError
+from herdr_claude_accounts.launcher import upstream
 
 BEGIN = '# BEGIN Claude Accounts\n'
 END = '# END Claude Accounts\n'
@@ -74,12 +74,12 @@ def install(store, binary=None, home=None):
     if bindir.is_symlink():
         raise AccountError('Launcher directory must not be a symbolic link.')
     bindir.mkdir(mode=0o700, exist_ok=True)
-    repo = str(Path(__file__).resolve().parent)
+    repo = str(Path(__file__).resolve().parents[1])
     prefix = '#!' + sys.executable + '\nimport sys\nsys.path.insert(0, ' + repr(repo) + ')\n'
-    launch_code = prefix + 'from accounts import Store\nfrom launcher import main\n' + (
+    launch_code = prefix + 'from herdr_claude_accounts.accounts import Store\nfrom herdr_claude_accounts.launcher import main\n' + (
         'sys.exit(main(Store(' + repr(str(store.root)) + ')))\n'
     )
-    manager_code = prefix + 'from manager import main\n' + (
+    manager_code = prefix + 'from herdr_claude_accounts.manager import main\n' + (
         'sys.exit(main(["--root", ' + repr(str(store.root)) + '] + sys.argv[1:]))\n'
     )
     write_atomic(bindir / 'claude', launch_code, 0o700)
