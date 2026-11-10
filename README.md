@@ -254,6 +254,13 @@ history and backups remain; disabling the UI does not undo a history migration.
 - Menu missing: distinguish Herdr TUI configuration from native Herdr app configuration.
 - Wrong account: check the launcher on PATH. An explicit `CLAUDE_CONFIG_DIR`
   overrides ordinary launches; `claude-accounts launch UUID|system` pins a profile.
+- New terminals switch correctly but an old tab resumes with the old account:
+  that shell may still have its pre-install PATH. Check `type -a claude`; the
+  manager launcher must come first. In fish, run
+  `source ~/.config/fish/conf.d/zzz-herdr-claude-accounts.fish`; in zsh, run
+  `export PATH="$HOME/.local/share/herdr-claude-accounts/bin:$PATH"` and `rehash`.
+  Exit the old Claude process before resuming. Alternatively, invoke
+  `~/.local/share/herdr-claude-accounts/bin/claude --resume SESSION_ID` directly.
 - Conflicting API/provider variables: managed claude.ai profiles refuse them.
   Use System default for your normal API/provider environment.
 - Missing history: run the explicit migration and check `pending_profiles`.
