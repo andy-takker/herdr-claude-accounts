@@ -37,8 +37,16 @@ def inventory(root):
         raise AccountError('Conversation path must be a real directory: ' + str(root))
     result = {}
     if root.exists():
+        real_root = root.resolve()
         for path in root.rglob('*'):
             mode = path.lstat().st_mode
+            if stat.S_ISLNK(mode):
+                # Claude links forked sessions' subagent transcripts to the original session.
+                target = path.resolve()
+                if target.is_file() and target.is_relative_to(real_root):
+                    result[path.relative_to(root)] = path
+                    continue
+                raise AccountError('Unsupported conversation file or symbolic link: ' + str(path))
             if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
                 raise AccountError('Unsupported conversation file or symbolic link: ' + str(path))
             result[path.relative_to(root)] = path

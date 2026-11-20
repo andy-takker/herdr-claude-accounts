@@ -232,6 +232,17 @@ class SharedConversationsTests(unittest.TestCase):
         self.assertFalse((self.source / 'projects/repo/a.jsonl').exists())
         self.assertNotIn('shared_profiles', result)
 
+    def test_internal_subagent_link_from_forked_session_is_accepted(self):
+        original = self.put(self.source, "projects/repo/s1/subagents/agent.jsonl", b'{"uuid":"agent"}\n')
+        link = self.source / "projects/repo/s2/subagents/agent.jsonl"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(original)
+        self.put(self.pa, "projects/repo/a.jsonl", b'{"uuid":"a"}\n')
+        self.sync()
+        self.assertTrue((self.pa / "projects").is_symlink())
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(link.read_bytes(), b'{"uuid":"agent"}\n')
+
     def test_foreign_links_and_nonregular_data_fail_without_following(self):
         external = self.put(self.root, "external", b"private")
         (self.pa / "projects").mkdir()
