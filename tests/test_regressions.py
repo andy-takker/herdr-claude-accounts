@@ -118,7 +118,7 @@ elif sys.argv[1:2] == ['agents']:
                 pump()
             self.assertTrue(condition(), repr(output[-500:]))
         try:
-            wait_for(lambda: b'Sessions:' in output)
+            wait_for(lambda: b'Running sessions:' in output)
             os.write(master, b'a')
             wait_for(lambda: b'New account name' in output)
             os.write(master, b'New\n')

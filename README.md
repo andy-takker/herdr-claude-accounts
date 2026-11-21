@@ -43,7 +43,7 @@ installation required.
 | **Continue the same task** | Opt-in shared history for `--resume` and `--continue`, with migration backups. |
 | **Compare available usage** | Five-hour, weekly and model-specific quota windows, reset times and per-account refresh. |
 | **Keep your setup** | Shared settings, skills, hooks, commands, project trust decisions and MCP definitions. |
-| **See active sessions** | Collapsible session lists inside each account card; running processes keep their original account. |
+| **See active sessions** | Each account's running sessions, with a copyable resume command and a guided “continue with another account”; running processes keep their original account. |
 | **Manage profiles** | Cancel sign-in, remove without erasing profile data, and restore removed accounts. |
 
 Usage is cached for **5 minutes**. Shared status probes use a **15-second cache**.
@@ -183,7 +183,14 @@ its `global` object, retaining other bindings:
 }
 ```
 
-**Cmd+Shift+A** opens the account dialog. The optional sidebar layout is in
+**Cmd+Shift+A** opens the account dialog. Accounts are listed on the left;
+clicking one shows its details on the right without changing anything. From
+there, **Use for new sessions** changes the default account, **New session…**
+picks an account, a folder and whether to start fresh, `--continue` or resume a
+specific conversation, and each running session can be continued with another
+account after it exits. **+ Add account** walks through name, browser sign-in
+and a ready step; **Retry sign-in** starts a fresh browser tab if the first one
+was lost. The optional sidebar layout is in
 `herdr-app/layout.json` with `herdr-app/preview.svg`: copy them to
 `~/.config/herdr-app/layouts/claude-accounts.json` and
 `~/.config/herdr-app/layouts/claude-accounts.svg`, then select that layout in
@@ -224,20 +231,20 @@ the account with which they started.
 
 | Key in the TUI | Action |
 | --- | --- |
-| Up / Down | Highlight an account |
+| Up / Down | Highlight an account; its details and sessions show below the list |
 | Enter | Select it for new launches |
-| Space | Expand or collapse its active sessions |
+| Tab / Space | Focus its running sessions; Up / Down picks one, Enter continues it with another account in a new tab, Tab / Esc returns |
 | `u` | Refresh only this account's usage |
 | `a` / `l` / `c` | Add / sign in again / cancel sign-in |
 | `d` | Remove after confirmation; select System default |
 | `o` | Removed profiles; Enter restores, `b` or Esc returns |
-| `n` | Launch the highlighted account in a new Herdr tab |
+| `n` / `N` | Launch the highlighted account in a new Herdr tab / with `--continue` |
 | `s` / `r` | Select System default / refresh cached status |
 | `v` | Confirm a short access check that uses quota |
 | Page Up / Page Down | Scroll |
 | `q` / Esc | Close the menu |
 
-Outside Herdr, `n` temporarily runs Claude in the current terminal and returns
+Outside Herdr, `n`, `N` and session resume temporarily run Claude in the current terminal and returns
 to the menu when it exits. The GUI exposes the same operations as buttons.
 Browser cancellation stops only that login attempt; its browser tab may remain.
 

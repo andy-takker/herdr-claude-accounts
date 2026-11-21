@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 from herdr_claude_accounts.accounts import AccountError, Store
 from herdr_claude_accounts.claude_cli import Claude, termination_signals
@@ -45,6 +46,12 @@ def login_account(store, claude, account_id, browser=False, cancel=None):
         if cancel is not None and cancel.is_set():
             return 130, {'state': 'cancelled'}
         status = claude.auth(profile)
+        # Right after sign-in Claude may print a notice instead of JSON; ask again briefly.
+        for _ in range(3):
+            if code != 0 or status.get('state') != 'unknown':
+                break
+            time.sleep(1)
+            status = claude.auth(profile)
         return code, status
     finally:
         invalidate_login(store, account_id, status)
@@ -165,7 +172,9 @@ def run(args):
             from herdr_claude_accounts.usage import cached_usage
             for row in [system] + accounts:
                 row['usage'] = cached_usage(store, claude, row['id'], row['auth'])
-        return {'selected': store.read()['selected'], 'system': system, 'accounts': accounts}
+        latest = store.read()
+        return {'selected': latest['selected'], 'share_conversations': latest.get('share_conversations', False),
+                'system': system, 'accounts': accounts}
     if args.command == 'ui':
         from herdr_claude_accounts.ui import show
         show(store)

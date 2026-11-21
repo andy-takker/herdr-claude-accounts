@@ -66,3 +66,18 @@ class LoginCancellationTests(unittest.TestCase):
                 process.communicate()
             self.assertEqual((profile/'history.jsonl').read_text(),'keep')
             self.assertEqual(store.read()['accounts'],[account])
+
+    def test_browser_login_confirms_sign_in_after_a_transient_status_glitch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = Store(root / 'data')
+            binary = root / 'claude'
+            binary.write_bytes((REPO / 'tests/fake_claude.py').read_bytes()); binary.chmod(0o700)
+            store.configure_binary(binary)
+            account = store.create('Work'); profile = store.profile(account['id'])
+            (profile / 'fixture.json').write_text(json.dumps({'malformed_once': True, 'exit': 0, 'auth': {
+                'loggedIn': True, 'authMethod': 'claude.ai', 'email': 'work@example.com'}}))
+            p = subprocess.run([sys.executable, str(REPO / 'herdr_claude_accounts/__main__.py'), '--root', str(store.root),
+                                'login', account['id'], '--browser'], text=True, capture_output=True, timeout=10)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(json.loads(p.stdout)['state'], 'saved')

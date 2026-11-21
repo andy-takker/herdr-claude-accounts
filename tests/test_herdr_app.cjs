@@ -96,9 +96,22 @@ function find(node, id) {
   ui.adding=true;
   click(cx => ui.add(cx)); await Promise.all(jobs);
   assert.match(ui.error,/timed out/);
+  assert.equal(ui.addFlow.step,'failed');
+  assert.equal(ui.pane(),'add');
   assert.equal(ui.rows[0].id,'new');
   assert.equal(ui.adding,false);
   assert.ok(requests.some(r => r[1].join(',')==='login,new,--browser,--attempt,ticket'));
+  context.exec = async (_path, args) => {
+    requests.push([_path,args]);
+    if (args[0] === 'add') return {code:0,stdout:'{"id":"new","label":"New account"}'};
+    if (args[0] === 'prepare-login') return {code:0,stdout:'{"attempt":"ticket"}'};
+    if (args[0] === 'login') return {code:0,stdout:'{"state":"saved"}'};
+    return {code:0,stdout:JSON.stringify({...status,accounts:[{id:'new',label:'New account'}]})};
+  };
+  ui.back(); ui.adding=true;
+  click(cx => ui.add(cx)); await Promise.all(jobs);
+  assert.equal(ui.addFlow.step,'done'); assert.equal(ui.error,'');
+  ui.back(); assert.equal(ui.pane(),'detail');
   context.exec = async (_path,args) => {
     requests.push([_path,args]);
     return {code:0,stdout:JSON.stringify(args[0] === 'status' ? status : {})};
@@ -142,25 +155,54 @@ function find(node, id) {
   assert.match(ui.usageSummary({usage:{state:'unavailable',reason:'timeout',windows:[]}}),/unavailable/);
   assert.match(ui.usageSummary({usage:{state:'available',checked_at:1,windows:[{resets_at:2}]}}),/out of date/);
   ui.closed=false;
-  ui.rows=[{id:'work',label:'Work',sessions:{available:true,sessions:[{id:'one',state:'idle',cwd:'/project'}]}}];
+  ui.rows=[{id:'work',label:'Work',sessions:{available:true,sessions:[{id:'one',sessionId:'sid-one',state:'idle',cwd:'/project'}]}}];
   ui.system={id:null,label:'System default',sessions:{available:true,sessions:[]}};
-  ui.selected=null;
+  ui.selected=null; ui.at=0;
   context.div=context.v_flex=context.h_flex=element;
   context.theme=()=>({});
   let tree=ui.render();
   assert.equal(find(tree,'accounts-list').items.map(n=>n.name).join(','),'system,work');
   ui.rows.push({id:'later',label:'Added later'});
   assert.equal(find(ui.render(),'accounts-list').items.map(n=>n.name).join(','),'system,work,later');
+  ui.rows.pop();
+  // Clicking a list row inspects the account; selecting it is a separate, explicit action.
   assert.equal(find(tree,'session-list-work'),null);
+  find(tree,'work').click({},cx);
+  assert.equal(ui.at,1); assert.equal(ui.selected,null);
+  tree=ui.render();
+  assert.ok(find(find(tree,'account-detail'),'session-list-work'));
   let stopped=false;
   const clickCx={...cx,stop_propagation(){stopped=true;}};
-  find(tree,'sessions-work').click({},clickCx);
-  assert.equal(stopped,true);
-  assert.equal(ui.selected,null);
+  find(tree,'session-sid-one').click({},clickCx);
+  assert.equal(stopped,true); assert.equal(ui.openSession,'sid-one');
   tree=ui.render();
-  assert.ok(find(find(tree,'work'),'session-list-work'));
-  find(tree,'sessions-work').click({},clickCx);
-  assert.equal(find(ui.render(),'session-list-work'),null);
+  assert.ok(find(tree,'session-actions-sid-one'));
+  // Session level: continue a conversation with another account opens the new-session pane, never launches.
+  const runsBefore=runs.length;
+  find(tree,'continue-sid-one').click({},clickCx);
+  assert.equal(runs.length,runsBefore);
+  assert.equal(ui.pane(),'new');
+  assert.deepEqual([ui.ns.account,ui.ns.folder,ui.ns.start,ui.ns.resume],['system','/project','resume','sid-one']);
+  context.spaces=()=>[{id:'local',machine:null}];
+  find(ui.render(),'ns-launch').click({},clickCx);
+  assert.equal(runs.at(-1)[0],'space.new');
+  assert.equal(runs.at(-1)[1].folder,'/project');
+  assert.equal(runs.at(-1)[1].argv.slice(-5).join(','),'launch,system,--,--resume,sid-one');
+  assert.equal(ui.selected,null,'launching must not change the default account');
+  // New session in the current space with --continue, and remembering the account selects it first.
+  ui.startNew('work'); ui.ns.start='continue';
+  find(ui.render(),'ns-launch').click({},clickCx);
+  assert.equal(runs.at(-1)[0],'tab.new');
+  assert.equal(runs.at(-1)[1].argv.slice(-4).join(','),'launch,work,--,--continue');
+  ui.startNew('work'); find(ui.render(),'ns-remember').click({},clickCx);
+  assert.equal(ui.ns.remember,true);
+  reply={code:0,stdout:'{"selected":"work"}'};
+  find(ui.render(),'ns-launch').click({},clickCx); await Promise.all(jobs);
+  assert.equal(requests.at(-1)[1].join(','),'select,work');
+  assert.equal(ui.selected,'work');
+  assert.equal(runs.at(-1)[1].argv.slice(-2).join(','),'launch,work');
+  ui.selected=null; ui.back(); ui.at=1;
+  assert.equal(ui.pane(),'detail');
   const fresh={state:'available',checked_at:2000,windows:[{label:'Weekly',used_percent:10,resets_at:null}]};
   context.exec=async (_path,args)=>{
     requests.push([_path,args]);
@@ -176,6 +218,7 @@ function find(node, id) {
   assert.equal(ui.rows[0].usage.windows[0].used_percent,10);
   assert.equal(ui.system.usage,undefined);
   assert.equal(ui.selected,null);
+  find(ui.render(),'system').click({},cx);
   find(ui.render(),'refresh-usage-system').click({},clickCx);
   await Promise.all(jobs);
   assert.equal(requests.at(-1)[1].join(','),'refresh-usage,system');

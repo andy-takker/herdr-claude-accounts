@@ -26,17 +26,19 @@ class UiTests(unittest.TestCase):
                  'sessions': {'available': False, 'sessions': []}},
                 {'id': 'b', 'label': 'Personal', 'sessions': {'available': True, 'sessions': [
                     {'id': 'session-1', 'state': 'working', 'kind': 'background', 'cwd': '/project'}]}}]
-        folded = '\n'.join(render_lines(rows, 'a', 0))
-        self.assertNotIn('/project', folded)
-        text = '\n'.join(render_lines(rows, 'a', 0, expanded={'b'}))
-        self.assertIn('unavailable', text)
-        self.assertIn('other account', text)
-        self.assertIn('working', text)
-        self.assertNotIn('0 sessions', text)
+        first = '\n'.join(render_lines(rows, 'a', 0))
+        self.assertIn('Running sessions: unavailable (not zero)', first)
+        self.assertNotIn('0 sessions', first)
+        self.assertNotIn('/project', first, 'only the highlighted account shows its sessions')
+        second = '\n'.join(render_lines(rows, 'a', 1))
+        self.assertIn('/project', second)
+        self.assertIn('working', second)
+        self.assertNotIn('(used for new sessions)', second)
+        self.assertIn('> /project', '\n'.join(render_lines(rows, 'a', 1, session_cursor=0)))
 
     def test_terminal_controls_are_not_rendered_from_account_or_session_metadata(self):
         text = '\n'.join(render_lines([{'id': 'a', 'label': 'X\x1b[2J',
-            'sessions': {'available': True, 'sessions': [{'id': 'x', 'state': '\x1b[31m', 'cwd': '\nFAKE'}]}}], None, 0, expanded={'a'}))
+            'sessions': {'available': True, 'sessions': [{'id': 'x', 'state': '\x1b[31m', 'cwd': '\nFAKE'}]}}], None, 0))
         self.assertNotIn('\x1b', text)
         self.assertNotIn('\nFAKE', text)
 
@@ -64,12 +66,13 @@ class UiTests(unittest.TestCase):
             text='\n'.join(render_lines(rows,None,0,usage_colors=colors))
             self.assertIn('20% free',text)
             self.assertIn('resets',text)
-            self.assertEqual(list(colors.values()),[80,80,80])
+            self.assertEqual(list(colors.values()),[(80,29)]*3+[(80,3)])
 
     def test_system_provider_sign_in_is_not_reported_as_unchecked(self):
         lines = render_lines([{'id': None, 'label': 'System default',
                                'auth': {'state': 'provider'}}], None, 0)
-        self.assertIn('API/provider sign-in', lines[4])
+        self.assertIn('API/provider sign-in', '\n'.join(lines))
+        self.assertNotIn('not checked', '\n'.join(lines[:6]))
 
     def test_color_boundaries_and_unconfirmed_login(self):
         self.assertEqual([usage_band(n) for n in (0, 69, 70, 79, 80, 89, 90, 100)],
@@ -90,6 +93,14 @@ class UiTests(unittest.TestCase):
             self.assertEqual(start[:4], ['/test/herdr', 'pane', 'run', 'w7:p3'])
             import shlex
             self.assertEqual(shlex.split(start[4]), launch_command(store, None))
+            calls = [subprocess.CompletedProcess([], 0, json.dumps({'result': {'root_pane': {'pane_id': 'w7:p4'}}})),
+                     subprocess.CompletedProcess([], 0)]
+            with patch.dict(os.environ, {'HERDR_ENV': '1', 'HERDR_WORKSPACE_ID': 'w7', 'HERDR_BIN_PATH': '/test/herdr'}), \
+                    patch('herdr_claude_accounts.ui.subprocess.run', side_effect=calls) as run:
+                launch_tab(store, 'work', ['--resume', 'sid-1'], '/project dir')
+            create, start = [call.args[0] for call in run.call_args_list]
+            self.assertEqual(create[create.index('--cwd') + 1], '/project dir')
+            self.assertEqual(shlex.split(start[4])[-5:], ['launch', 'work', '--', '--resume', 'sid-1'])
 
     def test_pty_add_cancel_relogin_usage_select_remove_restore(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -121,9 +132,11 @@ class UiTests(unittest.TestCase):
                     return True
             try:
                 wait_for(lambda: b'Ready.' in output)
-                self.assertNotIn(b'/fixture-session-path', output)
-                os.write(master, b' ')
                 wait_for(lambda: b'/fixture-session-path' in output)
+                os.write(master, b' ')
+                wait_for(lambda: b'Tab/Esc back to accounts' in output)
+                os.write(master, b'\x1b')
+                wait_for(lambda: output.rfind(b'Tab sessions') > output.rfind(b'Tab/Esc back'))
                 os.write(master, b'a')
                 wait_for(lambda: b'New account name' in output)
                 os.write(master, b'Fixture account\n')

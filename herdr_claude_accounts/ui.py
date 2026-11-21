@@ -32,52 +32,77 @@ def stamp(value):
     return time.strftime('%H:%M %d.%m.%Y', time.localtime(value)) if value else 'not checked'
 
 
-def render_lines(rows, selected, cursor, expanded=(), usage_colors=None):
-    lines = ['Claude Accounts', 'Selected: ' + next(
+def headroom(row):
+    windows = row.get('usage', {}).get('windows', [])
+    return round(min(100 - w['used_percent'] for w in windows)) if windows else None
+
+
+def sessions_of(row):
+    sessions = row.get('sessions', {})
+    return sessions.get('sessions', []) if sessions.get('available') else []
+
+
+def short_path(path):
+    home = str(Path.home())
+    path = str(path or '')
+    return '~' + path[len(home):] if path == home or path.startswith(home + '/') else path
+
+
+def render_lines(rows, selected, cursor, session_cursor=None, usage_colors=None):
+    """Accounts list on top, the highlighted account below it, its sessions last."""
+    lines = ['Claude Accounts', 'New sessions use: ' + next(
         (clean(a['label']) for a in rows if a['id'] == selected),
-        'System default' if selected is None else 'unavailable profile'), '']
+        'System default' if selected is None else 'unavailable profile'), '', 'ACCOUNTS']
     for i, row in enumerate(rows):
-        auth = row.get('auth', {})
-        marker = '*' if row['id'] == selected else ' '
-        lines.append(('> ' if i == cursor else '  ') + marker + ' ' + clean(row['label']))
-        identity = (' | ' + clean(auth['email'])) if auth.get('email') else ''
-        lines.append('    ' + AUTH_LABELS.get(auth.get('state'), 'not checked') + identity)
-        if auth.get('checked_at'):
-            lines.append('    Checked: ' + stamp(auth['checked_at']))
-        online = row.get('online', {})
-        if online.get('state'):
-            lines.append('    Last online check: ' + AUTH_LABELS.get(online['state'], 'unknown')
-                         + ' at ' + stamp(online.get('checked_at')))
-        usage = row.get('usage', {})
-        windows = usage.get('windows', [])
-        if windows:
-            stale = (usage.get('state') == 'stale' or time.time() - usage.get('checked_at', 0) > 330
-                     or any(w.get('resets_at') and w['resets_at'] <= time.time() for w in windows))
-            lines.append('    Usage: ' + stamp(usage.get('checked_at')) + (' (stale)' if stale else ''))
-            for window in windows:
-                percent = window['used_percent']
-                bar = '#' * round(percent / 10)
-                if usage_colors is not None:
-                    usage_colors[len(lines)] = percent
-                reset = 'resets ' + stamp(window['resets_at']) if window.get('resets_at') else ''
-                lines.append('    [{:10}]  {:18}  {:>4}% free  {}'.format(
-                    bar, clean(window['label']), format(100 - percent, '.0f'), reset))
-        else:
-            lines.append('    Usage unavailable: ' + clean(usage.get('reason', 'not checked')))
+        state = row.get('auth', {}).get('state')
+        room = headroom(row)
         sessions = row.get('sessions', {})
-        if not sessions.get('available'):
-            lines.append('    Sessions: unavailable (not zero)')
-        else:
-            active = sessions.get('sessions', [])
-            opened = row['id'] in expanded
-            lines.append('    ' + ('▼' if opened else '▸') + ' Sessions: ' + str(len(active))
-                         + (' — other account' if active and row['id'] != selected else ''))
-            if opened:
-                for session in active:
-                    lines.append('      ' + ' | '.join(clean(session.get(k, '?')) for k in ('id', 'kind', 'state', 'cwd')))
-        if row.get('error'):
-            lines.append('    ' + clean(row['error']))
-        lines.append('')
+        count = len(sessions.get('sessions', [])) if sessions.get('available') else None
+        summary = 'SIGN IN REQUIRED' if state == 'needs_login' else ' · '.join(filter(None, [
+            '' if room is None else '{}% headroom'.format(room),
+            'sessions unavailable' if count is None else '{} session{}'.format(count, '' if count == 1 else 's')]))
+        bar = '' if room is None else '[{:10}]  '.format('#' * round((100 - room) / 10))
+        if room is not None and usage_colors is not None:
+            usage_colors[len(lines)] = (100 - room, 29)
+        lines.append('{}{} {:22.22}  {}{}'.format('> ' if i == cursor else '  ', '*' if row['id'] == selected else ' ',
+                                                 clean(row['label']), bar, summary))
+    if not rows:
+        return lines
+    row = rows[cursor]
+    auth = row.get('auth', {})
+    lines += ['', '─' * 60, clean(row['label']).upper() + ('   (used for new sessions)' if row['id'] == selected else '')]
+    identity = (' | ' + clean(auth['email'])) if auth.get('email') else ''
+    lines.append('  ' + AUTH_LABELS.get(auth.get('state'), 'not checked') + identity
+                 + ('   checked ' + stamp(auth['checked_at']) if auth.get('checked_at') else ''))
+    online = row.get('online', {})
+    if online.get('state'):
+        lines.append('  Last online check: ' + AUTH_LABELS.get(online['state'], 'unknown') + ' at ' + stamp(online.get('checked_at')))
+    usage = row.get('usage', {})
+    windows = usage.get('windows', [])
+    if windows:
+        stale = (usage.get('state') == 'stale' or time.time() - usage.get('checked_at', 0) > 330
+                 or any(w.get('resets_at') and w['resets_at'] <= time.time() for w in windows))
+        lines.append('  Usage · ' + stamp(usage.get('checked_at')) + (' (stale)' if stale else ''))
+        for window in windows:
+            percent = window['used_percent']
+            if usage_colors is not None:
+                usage_colors[len(lines)] = (percent, 3)
+            reset = 'resets ' + stamp(window['resets_at']) if window.get('resets_at') else ''
+            lines.append('  [{:10}]  {:18}  {:>4}% free  {}'.format(
+                '#' * round(percent / 10), clean(window['label']), format(100 - percent, '.0f'), reset))
+    else:
+        lines.append('  Usage unavailable: ' + clean(usage.get('reason', 'not checked')))
+    sessions = row.get('sessions', {})
+    if not sessions.get('available'):
+        lines.append('  Running sessions: unavailable (not zero)')
+    else:
+        active = sessions.get('sessions', [])
+        lines.append('  Running sessions: {}{}'.format(len(active), '' if session_cursor is not None or not active else '   (Tab to act on one)'))
+        for i, session in enumerate(active):
+            lines.append('  {} {}  {}'.format('>' if i == session_cursor else ' ', clean(short_path(session.get('cwd')) or session.get('id', '?')),
+                                              ' · '.join(clean(session.get(k)) for k in ('state', 'kind', 'id') if session.get(k))))
+    if row.get('error'):
+        lines.append('  ' + clean(row['error']))
     return lines
 
 
@@ -118,19 +143,19 @@ def sign_in(store, cancel, account_id):
     return 'Sign-in not confirmed; profile retained. Press l to try again.'
 
 
-def launch_command(store, account_id):
+def launch_command(store, account_id, args=()):
     return [sys.executable, str(Path(__file__).with_name('__main__.py').resolve()),
-            '--root', str(store.root), 'launch', account_id or 'system']
+            '--root', str(store.root), 'launch', account_id or 'system'] + (['--'] + list(args) if args else [])
 
 
-def launch_tab(store, account_id):
+def launch_tab(store, account_id, args=(), cwd=None):
     workspace = os.environ.get('HERDR_WORKSPACE_ID')
     if os.environ.get('HERDR_ENV') != '1' or not workspace:
         raise AccountError('Open this menu inside a Herdr workspace to launch a new tab.')
     binary = os.environ.get('HERDR_BIN_PATH', 'herdr')
     try:
         created = subprocess.run([binary, 'tab', 'create', '--workspace', workspace,
-                                  '--cwd', os.getcwd(), '--label', 'Claude', '--focus'],
+                                  '--cwd', cwd or os.getcwd(), '--label', 'Claude', '--focus'],
                                  capture_output=True, text=True, timeout=10)
         if created.returncode:
             raise AccountError('Could not create a Herdr tab.')
@@ -140,7 +165,7 @@ def launch_tab(store, account_id):
     except (ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
         raise AccountError('Herdr did not confirm the new tab. Check its tabs before retrying.') from None
     try:
-        started = subprocess.run([binary, 'pane', 'run', pane, shlex.join(launch_command(store, account_id))],
+        started = subprocess.run([binary, 'pane', 'run', pane, shlex.join(launch_command(store, account_id, args))],
                                  capture_output=True, timeout=10)
         if started.returncode:
             raise AccountError('Tab created, but Claude could not be started. Check the new tab.')
@@ -212,7 +237,7 @@ def run(screen, store):
         pass
     colored = init_colors()
     rows, cursor, offset, message = [], 0, 0, 'Loading profiles…'
-    expanded, removed, deleted = set(), False, []
+    session_cursor, removed, deleted = None, False, []
     focus = None
     follow_cursor = False
     pool = ThreadPoolExecutor(max_workers=1)
@@ -288,7 +313,12 @@ def run(screen, store):
                 if not items:
                     lines.append('No removed accounts.')
             else:
-                lines = render_lines(rows, state['selected'], cursor, expanded, usage_colors)
+                active = sessions_of(rows[cursor]) if rows else []
+                if session_cursor is not None and not active:
+                    session_cursor = None
+                elif session_cursor is not None:
+                    session_cursor = min(session_cursor, len(active) - 1)
+                lines = render_lines(rows, state['selected'], cursor, session_cursor, usage_colors)
             visible = max(1, height - 6)
             if follow_cursor:
                 target = next((i for i, line in enumerate(lines) if line.startswith('> ')), 0)
@@ -298,29 +328,70 @@ def run(screen, store):
             offset = max(0, min(offset, max(0, len(lines) - visible)))
             for y, line in enumerate(lines[offset:offset + visible]):
                 put(screen, y, line)
-                if colored and y + offset in usage_colors and width > 5:
-                    percent = usage_colors[y + offset]
+                if colored and y + offset in usage_colors:
+                    percent, column = usage_colors[y + offset]
                     attr = curses.color_pair(usage_band(percent))
                     if 80 <= percent < 90 and curses.COLORS < 256:
                         attr |= curses.A_BOLD
                     try:
-                        screen.addnstr(y, 5, line[5:15], min(10, width - 6), attr)
+                        if width > column + 11:
+                            screen.addnstr(y, column, line[column:column + 10], 10, attr)
                     except curses.error:
                         pass
             if removed:
                 put(screen, height - 5, '↑/↓ account   Enter restore   b/Esc back   q quit')
+            elif session_cursor is not None:
+                put(screen, height - 5, 'Session  ↑/↓ session   Enter continue with another account')
+                put(screen, height - 4, '         Tab/Esc back to accounts')
+                put(screen, height - 3, '')
             else:
-                put(screen, height - 5, '↑/↓ account   Enter select   Space sessions   u refresh usage   n launch')
-                put(screen, height - 4, 'a add   l sign in   c cancel sign-in   d remove   o removed   s system')
-                put(screen, height - 3, 'r refresh   v check access (uses quota)   PgUp/PgDn scroll   q/Esc quit')
+                put(screen, height - 5, 'List     ↑↓ account  a add  o removed  s system  r refresh  q quit')
+                put(screen, height - 4, 'Account  Enter default  n new  N continue latest  Tab sessions  u usage')
+                put(screen, height - 3, '         l sign in  c cancel sign-in  v check (quota)  d remove')
             put(screen, height - 2, message + (' [' + job + '…]' if future else ''))
             if os.environ.get('CLAUDE_CONFIG_DIR'):
                 put(screen, height - 1, 'Explicit CLAUDE_CONFIG_DIR overrides ordinary launches; n pins this account.')
             screen.refresh()
             key = screen.getch()
-            if key == ord('q') or (key == 27 and not removed):
+            if key == ord('q') or (key == 27 and not removed and session_cursor is None):
                 break
-            if key in (curses.KEY_UP, ord('k'), curses.KEY_DOWN, ord('j')):
+            if session_cursor is not None and key in (27, 9, ord(' ')):
+                session_cursor = None
+            elif session_cursor is not None and key in (curses.KEY_UP, ord('k'), curses.KEY_DOWN, ord('j')):
+                session_cursor = max(0, min(len(sessions_of(rows[cursor])) - 1,
+                                            session_cursor + (-1 if key in (curses.KEY_UP, ord('k')) else 1)))
+            elif session_cursor is not None and key != -1 and key not in (10, 13, curses.KEY_ENTER, curses.KEY_NPAGE, curses.KEY_PPAGE):
+                pass  # account-level keys are inactive while a session is focused
+            elif session_cursor is not None and key in (10, 13, curses.KEY_ENTER) and not (future and job != 'refresh'):
+                session = sessions_of(rows[cursor])[session_cursor]
+                others = [r for r in rows if r['id'] != rows[cursor]['id'] and r.get('auth', {}).get('state') != 'needs_login']
+                resume = session.get('sessionId')
+                if not resume or not others:
+                    message = 'This session cannot be resumed elsewhere (no session id or no other signed-in account).'
+                    continue
+                choice = ask(screen, 'Exit it first. Resume with: ' + '  '.join(
+                    '{} {}'.format(i + 1, clean(r['label'])) for i, r in enumerate(others)) + '  (number, empty cancels):')
+                if not choice.isdigit() or not 1 <= int(choice) <= len(others):
+                    message = 'Resume cancelled.'
+                    continue
+                target = others[int(choice) - 1]['id']
+                stop_job()
+                cancel = threading.Event()
+                try:
+                    if os.environ.get('HERDR_ENV') == '1':
+                        job, future = 'launch', pool.submit(launch_tab, store, target, ['--resume', resume], session.get('cwd'))
+                    else:
+                        curses.def_prog_mode()
+                        curses.endwin()
+                        try:
+                            subprocess.call(launch_command(store, target, ['--resume', resume]), cwd=session.get('cwd') or None)
+                            message = 'Claude exited. Returned to account manager.'
+                        finally:
+                            curses.reset_prog_mode()
+                            screen.clear()
+                except (AccountError, OSError) as error:
+                    message = str(error) if isinstance(error, AccountError) else 'Local operation failed.'
+            elif key in (curses.KEY_UP, ord('k'), curses.KEY_DOWN, ord('j')):
                 cursor = max(0, min(len(items) - 1, cursor + (-1 if key in (curses.KEY_UP, ord('k')) else 1)))
                 if not removed and rows:
                     focus = rows[cursor]['id']
@@ -334,9 +405,11 @@ def run(screen, store):
                 message = 'Cancelling sign-in…'
             elif future and job != 'refresh':
                 continue
-            elif key == ord(' ') and not removed and rows:
-                account_id = rows[cursor]['id']
-                expanded.symmetric_difference_update({account_id})
+            elif key in (ord(' '), 9) and not removed and rows:
+                if sessions_of(rows[cursor]):
+                    session_cursor = 0
+                else:
+                    message = 'No running sessions for this account.'
             elif key == ord('o') or (removed and key in (ord('b'), 27)):
                 stop_job()
                 future = None
@@ -344,7 +417,7 @@ def run(screen, store):
                 deleted = [r['account'] for r in store.removed()] if removed else []
                 cursor, offset, follow_cursor = 0, 0, True
                 next_refresh = time.monotonic()
-            elif key in (ord('a'), ord('l'), ord('v'), ord('r'), ord('s'), ord('d'), ord('u'), ord('n'), 10, 13, curses.KEY_ENTER):
+            elif key in (ord('a'), ord('l'), ord('v'), ord('r'), ord('s'), ord('d'), ord('u'), ord('n'), ord('N'), 10, 13, curses.KEY_ENTER):
                 stop_job()
                 future = None
                 cancel = threading.Event()
@@ -375,14 +448,15 @@ def run(screen, store):
                         job, future = 'usage', pool.submit(refresh_usage, store, cancel, account_id)
                     elif key == ord('s') or (key in (10, 13, curses.KEY_ENTER) and account):
                         job, future = 'select', pool.submit(store.select, None if key == ord('s') else account_id)
-                    elif key == ord('n') and account:
+                    elif key in (ord('n'), ord('N')) and account:
+                        args = ['--continue'] if key == ord('N') else []
                         if os.environ.get('HERDR_ENV') == '1':
-                            job, future = 'launch', pool.submit(launch_tab, store, account_id)
+                            job, future = 'launch', pool.submit(launch_tab, store, account_id, args)
                         else:
                             curses.def_prog_mode()
                             curses.endwin()
                             try:
-                                subprocess.call(launch_command(store, account_id))
+                                subprocess.call(launch_command(store, account_id, args))
                                 message = 'Claude exited. Returned to account manager.'
                             finally:
                                 curses.reset_prog_mode()

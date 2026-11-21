@@ -14,6 +14,11 @@ args = sys.argv[1:]
 if fixture.get('sleep'):
     time.sleep(fixture['sleep'])
 if args == ['auth', 'status', '--json']:
+    once = profile / 'malformed-once.done'
+    if fixture.get('malformed_once') and not once.exists():
+        once.touch()
+        print('Your organization may apply global configuration')
+        sys.exit(0)
     if fixture.get('malformed'):
         print('not-json SECRET')
     else:
