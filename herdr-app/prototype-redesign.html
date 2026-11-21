@@ -1,0 +1,532 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Not part of the Herdr app.
+  Question: what should the Claude Accounts dialog look like, and how do we separate
+  list-level actions (accounts), item-level actions (one account) and session-level actions (one Claude session)?
+  Three structurally different variants of the 760×720 dialog, switchable via ?variant=A|B|C (← / → keys).
+  Data is fictional and in-memory; every action is a stub that only shows a toast.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accounts Dialog Prototype</title>
+<style>
+:root {
+  --canvas: #d9dbd4; --popover: #fbfbf9; --surface: #f2f2ee; --raised: #e8e8e2; --hover: #e2e2db;
+  --selected: #e6ecfb; --fg: #20221e; --muted: #6c6f66; --border: #e0e0d9; --accent: #2563eb;
+  --ok: #15803d; --warn: #b45309; --bad: #dc2626; --shadow: 0 24px 60px rgba(0,0,0,.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #121311; --popover: #1d1f1b; --surface: #252722; --raised: #2e302b; --hover: #353731;
+    --selected: #1f2a44; --fg: #ecece6; --muted: #9a9d93; --border: #33352f; --accent: #6b97ff;
+    --ok: #4ade80; --warn: #f59e0b; --bad: #f87171; --shadow: 0 24px 60px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"] {
+  --canvas: #121311; --popover: #1d1f1b; --surface: #252722; --raised: #2e302b; --hover: #353731;
+  --selected: #1f2a44; --fg: #ecece6; --muted: #9a9d93; --border: #33352f; --accent: #6b97ff;
+  --ok: #4ade80; --warn: #f59e0b; --bad: #f87171; --shadow: 0 24px 60px rgba(0,0,0,.5);
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: var(--canvas); color: var(--fg);
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  display: grid; place-items: center; padding: 24px 16px 96px; }
+button { font: inherit; color: inherit; border: 0; background: var(--raised); border-radius: 6px;
+  padding: 6px 11px; cursor: pointer; white-space: nowrap; }
+button:hover { background: var(--hover); }
+button.primary { background: var(--accent); color: #fff; }
+button.primary:hover { filter: brightness(1.08); }
+button.ghost { background: transparent; color: var(--muted); }
+button.ghost:hover { background: var(--hover); color: var(--fg); }
+button.danger { color: var(--bad); }
+button:disabled { opacity: .45; cursor: default; }
+kbd { font: 11px ui-monospace, monospace; padding: 1px 5px; border-radius: 4px; background: var(--raised); color: var(--muted); }
+.dialog { width: 760px; max-width: 100%; height: 720px; background: var(--popover); border-radius: 12px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.tiny { font-size: 11px; }
+.row { display: flex; align-items: center; gap: 8px; }
+.grow { flex: 1; min-width: 0; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scroll { overflow-y: auto; min-height: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pill { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--raised); color: var(--muted); }
+.pill.on { background: var(--accent); color: #fff; }
+.bar { height: 5px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 3px; }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--raised); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: var(--fg); color: var(--popover);
+  padding: 7px 12px; border-radius: 8px; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90%; }
+.toast.show { opacity: 1; }
+.head { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--border); }
+.head h1 { font-size: 16px; margin: 0; font-weight: 600; }
+.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+
+/* ---------- A: master–detail ---------- */
+.a-body { flex: 1; display: grid; grid-template-columns: 250px 1fr; min-height: 0; }
+.a-list { border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; background: var(--surface); }
+.a-list-tools { display: flex; gap: 4px; padding: 10px; border-bottom: 1px solid var(--border); }
+.a-item { padding: 9px 12px; cursor: pointer; border-left: 3px solid transparent; display: grid; gap: 5px; }
+.a-item:hover { background: var(--hover); }
+.a-item.focus { background: var(--popover); border-left-color: var(--accent); }
+.a-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.a-detail { display: flex; flex-direction: column; min-height: 0; }
+.a-detail-head { padding: 16px 20px 12px; display: grid; gap: 4px; }
+.a-detail-head .title { font-size: 18px; font-weight: 600; }
+.a-actions { display: flex; gap: 6px; padding: 0 20px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.a-section { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.quota { display: grid; grid-template-columns: 110px 1fr 70px 120px; gap: 10px; align-items: center; padding: 4px 0; }
+.sess { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 6px; cursor: pointer; }
+.sess:hover { background: var(--hover); }
+.sess.open { background: var(--selected); }
+.sess-panel { margin: 2px 0 8px 20px; padding: 10px; border-radius: 8px; background: var(--surface); display: grid; gap: 8px; }
+
+/* ---------- B: drill-in stack ---------- */
+.b-crumbs { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; }
+.b-crumbs a { color: var(--muted); cursor: pointer; text-decoration: none; font-weight: 500; }
+.b-crumbs a:hover { color: var(--fg); }
+.b-body { flex: 1; padding: 14px 18px; display: grid; gap: 10px; align-content: start; }
+.b-card { padding: 14px; border-radius: 10px; background: var(--surface); display: grid; grid-template-columns: 22px 1fr 190px 28px; gap: 12px; align-items: center; cursor: pointer; border: 1px solid transparent; }
+.b-card:hover { border-color: var(--border); background: var(--hover); }
+.b-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--muted); display: grid; place-items: center; cursor: pointer; }
+.b-radio.on { border-color: var(--accent); }
+.b-radio.on::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.b-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+.b-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.b-tile { padding: 12px; border-radius: 10px; background: var(--surface); display: grid; gap: 6px; }
+.b-tile .big { font-size: 22px; font-weight: 600; }
+.b-sheet { padding: 16px; border-radius: 10px; background: var(--surface); display: grid; gap: 12px; }
+.b-target { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px; border-radius: 8px; background: var(--popover); cursor: pointer; border: 1px solid var(--border); }
+.b-target.on { border-color: var(--accent); background: var(--selected); }
+
+/* ---------- C: sessions-first ---------- */
+.c-tabs { display: flex; gap: 2px; padding: 0 18px; border-bottom: 1px solid var(--border); }
+.c-tab { padding: 10px 12px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.c-tab.on { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.c-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 18px; }
+.c-chip { padding: 10px; border-radius: 9px; background: var(--surface); display: grid; gap: 6px; cursor: pointer; border: 1px solid transparent; }
+.c-chip:hover { background: var(--hover); }
+.c-chip.on { border-color: var(--accent); background: var(--selected); }
+.c-body { flex: 1; display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+.c-split { display: grid; grid-template-columns: 1fr 260px; min-height: 0; border-top: 1px solid var(--border); }
+.c-table { display: grid; align-content: start; }
+.c-tr { display: grid; grid-template-columns: 14px 1fr 130px 72px; gap: 10px; align-items: center; padding: 8px 18px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.c-tr:hover { background: var(--hover); }
+.c-tr.on { background: var(--selected); }
+.c-inspector { border-left: 1px solid var(--border); padding: 14px; display: grid; gap: 12px; align-content: start; background: var(--surface); }
+.c-acc-table { display: grid; }
+.c-acc-row { display: grid; grid-template-columns: 22px 1fr 110px 110px 110px auto; gap: 10px; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+
+/* ---------- switcher (not part of the design) ---------- */
+.switcher { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px;
+  background: #111; color: #fff; padding: 5px; border-radius: 99px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 10; font-size: 12px; }
+.switcher button { background: transparent; color: #fff; border-radius: 99px; padding: 6px 10px; }
+.switcher button:hover { background: #333; }
+.switcher span { padding: 0 8px; min-width: 210px; text-align: center; }
+.theme { position: fixed; top: 12px; right: 12px; }
+@media (max-width: 700px) {
+  .a-body { grid-template-columns: 1fr; } .a-list { max-height: 220px; }
+  .b-card { grid-template-columns: 22px 1fr 28px; } .b-card .b-q { display: none; }
+  .c-strip { grid-template-columns: 1fr 1fr; } .c-split { grid-template-columns: 1fr; } .c-inspector { border-left: 0; }
+  .quota { grid-template-columns: 90px 1fr 60px; } .quota .reset { display: none; }
+}
+</style>
+</head>
+<body>
+<button class="theme ghost" id="theme">Theme</button>
+<div class="dialog" id="dialog"></div>
+<div class="switcher">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <span id="label"></span>
+  <button id="next" aria-label="Next variant">→</button>
+</div>
+
+<script>
+// ---------- fictional data, same shape as status.json / usage.json ----------
+const now = Date.now() / 1000;
+const H = 3600;
+const S = {
+  accounts: [
+    { id: null, label: "System default", email: "me@example.com", auth: "saved",
+      usage: [{ label: "5 hours", used: 0, reset: null }, { label: "Weekly", used: 67, reset: now + 110 * H }, { label: "Weekly · Fable", used: 100, reset: now + 110 * H }],
+      sessions: [
+        { id: "39921312", state: "busy", cwd: "~/workspace/endrex/exchange-gateway", title: "Fix order book reconnect", age: "2m" },
+        { id: "0519f453", state: "idle", cwd: "~/workspace/trading-terminal/tinvest", title: "Refactor portfolio sync", age: "14m" },
+        { id: "c0c468fb", state: "idle", cwd: "~/workspace/trading-terminal/tinvest", title: "Subagent review of fills", age: "1h" },
+        { id: "7a21be90", state: "busy", cwd: "~/workspace/my/herdr-claude-accounts", title: "Redesign account dialog", age: "now" },
+        { id: "aa310c2e", state: "idle", cwd: "~/workspace/endrex/portal-api", title: "Migrate auth middleware", age: "3h" },
+        { id: "5d0e77f1", state: "idle", cwd: "~", title: "Untitled", age: "5h" },
+      ] },
+    { id: "5a7dee0a", label: "Insperia Team 3", email: "team-3@example.com", auth: "saved",
+      usage: [{ label: "5 hours", used: 7, reset: now + 4 * H }, { label: "Weekly", used: 41, reset: now + 106 * H }, { label: "Weekly · Fable", used: 36, reset: now + 106 * H }],
+      sessions: [{ id: "e41b0c9d", state: "busy", cwd: "~/workspace/endrex/exchange-gateway", title: "Write integration tests", age: "6m" }] },
+    { id: "cedf8de8", label: "Insperia Team 2", email: "team-2@example.com", auth: "saved",
+      usage: [{ label: "5 hours", used: 82, reset: now + 1.5 * H }, { label: "Weekly", used: 74, reset: now + 30 * H }, { label: "Weekly · Fable", used: 91, reset: now + 30 * H }],
+      sessions: [] },
+    { id: "4e426e9f", label: "Insperia Team 6", email: "", auth: "needs_login", usage: null, sessions: [] },
+  ],
+  selected: "5a7dee0a",        // account used for NEW Claude sessions
+  focus: "5a7dee0a",           // account being inspected (A) / opened (B)
+  openSession: null,           // session id being worked on
+  bView: "list",               // B: list | account | session
+  cTab: "sessions",            // C: sessions | accounts
+  cFilter: "all",              // C: account filter for the sessions table
+  resumeTarget: "cedf8de8",
+};
+
+const key = (a) => a.id || "system";
+const acc = (id) => S.accounts.find((a) => key(a) === id);
+const color = (p) => p < 70 ? "var(--accent)" : p < 80 ? "#eab308" : p < 90 ? "#f97316" : "var(--bad)";
+const free = (w) => Math.round(100 - w.used) + "% free";
+const resets = (t) => {
+  if (!t) return "";
+  const h = Math.round((t - now) / H);
+  return h < 24 ? `resets in ${h}h` : `resets in ${Math.round(h / 24)}d`;
+};
+const bar = (p, w = "100%") => `<div class="bar" style="width:${w}"><i style="width:${p}%;background:${color(p)}"></i></div>`;
+const authDot = (a) => a.auth === "saved" ? "var(--ok)" : "var(--warn)";
+const sessDot = (s) => s.state === "busy" ? "var(--accent)" : "var(--muted)";
+const headroom = (a) => a.usage ? Math.min(...a.usage.map((w) => 100 - w.used)) : null;
+const allSessions = () => S.accounts.flatMap((a) => a.sessions.map((s) => ({ ...s, account: key(a), accountLabel: a.label })));
+const findSession = (id) => allSessions().find((s) => s.id === id);
+
+let toastTimer;
+function toast(msg) {
+  const el = document.querySelector(".toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+const stub = (what) => toast("Stub: " + what);
+
+// Shared helpers — header only; each variant owns its layout.
+const header = (title, extra = "") => `<div class="head"><h1>${title}</h1><div class="grow"></div>${extra}<button class="ghost" data-act="close">Close <kbd>Esc</kbd></button></div>`;
+
+// ---------- Variant A: right-pane flows (new session / add account) ----------
+const RECENT = ["~/workspace/endrex/exchange-gateway", "~/workspace/trading-terminal/tinvest", "~/workspace/my/herdr-claude-accounts", "~/workspace/endrex/portal-api"];
+Object.assign(S, { aMode: "detail", ns: { account: null, where: "space", folder: RECENT[0], start: "new", resume: null, remember: false }, add: { step: "name", name: "" } });
+
+function ANewSession() {
+  const ns = S.ns;
+  const target = acc(ns.account);
+  const signed = S.accounts.filter((x) => x.auth === "saved");
+  const low = target && headroom(target) < 15;
+  const folder = ns.where === "space" ? "~/workspace/endrex/exchange-gateway" : ns.folder;
+  const inFolder = allSessions().filter((s) => s.cwd === folder);
+  const opt = (group, value, label, hint = "") => `<div class="b-target ${ns[group] === value ? "on" : ""}" data-ns="${group}:${value}">
+    <div><div>${label}</div>${hint ? `<div class="tiny muted">${hint}</div>` : ""}</div></div>`;
+  const cmd = ["claude-accounts launch " + (ns.account === "system" ? "system" : ns.account)]
+    .concat(ns.start === "continue" ? ["--continue"] : ns.start === "resume" && ns.resume ? ["--resume " + ns.resume] : []).join(" ");
+  return `<div class="a-detail scroll">
+    <div class="a-detail-head"><div class="row"><span class="title grow">New Claude session</span><button class="ghost" data-amode="detail">Cancel <kbd>Esc</kbd></button></div>
+      <div class="small muted">Starts a new tab. Running sessions keep their accounts.</div></div>
+    <div class="a-section"><p class="section-title">1 · Account</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${signed.map((x) => {
+        const k = key(x), h = headroom(x);
+        return `<div class="b-target ${ns.account === k ? "on" : ""}" data-ns="account:${k}"><div><div class="row"><b class="ellipsis">${x.label}</b>${k === S.selected ? `<span class="pill">default</span>` : ""}</div>
+          <div class="tiny muted">${h}% headroom · ${x.sessions.length} running</div></div>${bar(100 - h, "56px")}</div>`;
+      }).join("")}</div>
+      ${low ? `<div class="small" style="color:var(--warn);margin-top:8px">${target.label} is almost out of quota (${headroom(target)}% headroom). It will stop soon.</div>` : ""}
+      <label class="row small muted" style="margin-top:8px;cursor:pointer"><input type="checkbox" data-ns-remember ${ns.remember ? "checked" : ""}> Also use this account for future sessions</label>
+    </div>
+    <div class="a-section"><p class="section-title">2 · Folder</p>
+      <div style="display:grid;gap:6px">${opt("where", "space", "Current space", "~/workspace/endrex/exchange-gateway")}${opt("where", "recent", "Another folder", "Opens a new space")}</div>
+      ${ns.where === "recent" ? `<div style="display:grid;gap:4px;margin-top:8px">${RECENT.slice(1).map((f) => `<div class="sess ${ns.folder === f ? "open" : ""}" data-ns="folder:${f}"><span class="dot" style="background:var(--muted)"></span><span class="ellipsis">${f}</span><span></span></div>`).join("")}
+        <button class="ghost" style="justify-self:start" data-act="Choose folder…">Choose folder…</button></div>` : ""}
+    </div>
+    <div class="a-section"><p class="section-title">3 · Conversation</p>
+      <div style="display:grid;gap:6px">
+        ${opt("start", "new", "New conversation")}
+        ${opt("start", "continue", "Continue the latest in this folder", "claude --continue · shared history")}
+        ${opt("start", "resume", "Resume a specific conversation", inFolder.length ? `${inFolder.length} in this folder` : "none running here, pick from history")}
+      </div>
+      ${ns.start === "resume" ? `<div style="display:grid;gap:4px;margin-top:8px">${(inFolder.length ? inFolder : allSessions().slice(0, 3)).map((s) => `<div class="sess ${ns.resume === s.id ? "open" : ""}" data-ns="resume:${s.id}">
+        <span class="dot" style="background:${sessDot(s)}"></span><div class="grow"><div class="ellipsis">${s.title}</div><div class="tiny muted">${s.accountLabel} · ${s.id}</div></div>
+        <span class="tiny muted">${s.state === "busy" ? "running — exit it first" : s.age}</span></div>`).join("")}</div>` : ""}
+    </div>
+    <div class="a-section" style="border-bottom:0;display:grid;gap:8px">
+      <div class="row"><button class="primary" ${ns.start === "resume" && !ns.resume ? "disabled" : ""} data-act="Launch: ${cmd}">Launch with ${target ? target.label : "…"} <kbd style="background:transparent;color:#fff">↵</kbd></button></div>
+      <code class="tiny muted">${cmd}</code>
+    </div>
+  </div>`;
+}
+
+function AAddAccount() {
+  const st = S.add;
+  const steps = ["name", "browser", "done"];
+  const dots = steps.map((x, i) => `<span class="pill ${steps.indexOf(st.step) >= i ? "on" : ""}">${i + 1} · ${["Name", "Sign in", "Ready"][i]}</span>`).join("");
+  let body = "";
+  if (st.step === "name") body = `<div class="a-section" style="display:grid;gap:10px">
+      <label class="small muted">Account name, as shown in this list</label>
+      <input id="add-name" value="${st.name}" placeholder="e.g. Insperia Team 7" style="font:inherit;color:inherit;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+      <div class="small muted">A separate profile is created. Settings, skills and history stay shared; the sign-in is separate.</div>
+      <div class="row"><button class="primary" data-add="browser">Continue in browser</button><button class="ghost" data-amode="detail">Cancel</button></div></div>`;
+  if (st.step === "browser") body = `<div class="a-section" style="display:grid;gap:12px">
+      <div class="row"><span class="spin"></span><b>Waiting for browser sign-in…</b></div>
+      <div class="small muted">A claude.com tab opened. Sign in with the account for “${st.name || "New account"}” and press Authorize. This page updates by itself (up to 5 minutes).</div>
+      <div class="row"><button data-act="Open the sign-in link again">Open link again</button><button class="ghost" data-act="Copy sign-in link">Copy link</button>
+        <div class="grow"></div><button class="ghost danger" data-add="name">Cancel sign-in</button></div>
+      <button class="ghost tiny" style="justify-self:start" data-add="done">(prototype: simulate success)</button></div>`;
+  if (st.step === "done") body = `<div class="a-section" style="display:grid;gap:12px">
+      <div class="row"><span class="dot" style="background:var(--ok)"></span><b>${st.name || "New account"} is signed in</b></div>
+      <div class="small muted">new-account@example.com · Team plan</div>
+      <div class="row"><button class="primary" data-act="Launch with the new account">Launch session with it</button><button data-act="Use for new sessions">Use for new sessions</button><button class="ghost" data-amode="detail">Done</button></div></div>`;
+  return `<div class="a-detail scroll"><div class="a-detail-head"><span class="title">Add account</span><div class="row">${dots}</div></div>${body}</div>`;
+}
+
+// ---------- Variant A: master–detail ----------
+function VariantA() {
+  const a = acc(S.focus);
+  const sel = key(a) === S.selected;
+  const list = S.accounts.map((x) => {
+    const k = key(x);
+    const h = headroom(x);
+    return `<div class="a-item ${k === S.focus ? "focus" : ""}" data-focus="${k}">
+      <div class="row"><span class="dot" style="background:${authDot(x)}"></span>
+        <b class="grow ellipsis">${x.label}</b>${k === S.selected ? `<span class="pill on">new sessions</span>` : ""}</div>
+      ${x.usage ? `<div class="a-mini">${x.usage.slice(0, 2).map((w) => bar(w.used)).join("")}</div>
+        <div class="tiny muted">${h}% headroom · ${x.sessions.length} session${x.sessions.length === 1 ? "" : "s"}</div>`
+        : `<div class="tiny" style="color:var(--warn)">Sign-in required</div>`}
+    </div>`;
+  }).join("");
+
+  const sessions = a.sessions.length ? a.sessions.map((s) => {
+    const open = S.openSession === s.id;
+    return `<div class="sess ${open ? "open" : ""}" data-session="${s.id}">
+        <span class="dot" style="background:${sessDot(s)}"></span>
+        <div class="grow"><div class="ellipsis">${s.title}</div><div class="tiny muted ellipsis">${s.cwd} · ${s.id}</div></div>
+        <span class="tiny muted">${s.state} · ${s.age}</span></div>
+      ${open ? `<div class="sess-panel">
+        <div class="small muted">This session keeps ${a.label} until it exits.</div>
+        <div class="row" style="flex-wrap:wrap">
+          <button data-act="Focus its tab">Go to tab</button>
+          <button data-act="Resume ${s.id} with another account…">Continue with…</button>
+          <button class="ghost" data-act="Copy: claude --resume ${s.id}">Copy resume command</button>
+        </div></div>` : ""}`;
+  }).join("") : `<div class="muted small" style="padding:6px 8px">No running sessions.</div>`;
+
+  const pane = S.aMode === "new" ? ANewSession() : S.aMode === "add" ? AAddAccount() : null;
+  return header("Claude Accounts", `<button class="primary" data-amode="new">+ New session <kbd style="background:transparent;color:#fff">⌘N</kbd></button>`) + `<div class="a-body">
+    <div class="a-list">
+      <div class="a-list-tools">
+        <button data-amode="add">+ Add account</button>
+        <button class="ghost" data-act="Refresh all accounts">↻</button>
+        <div class="grow"></div>
+        <button class="ghost" data-act="Show removed accounts">Removed</button>
+      </div>
+      <div class="scroll" style="flex:1">${list}</div>
+      <div class="tiny muted" style="padding:8px 12px;border-top:1px solid var(--border)"><kbd>↑</kbd><kbd>↓</kbd> inspect · <kbd>↵</kbd> use for new sessions</div>
+    </div>
+    ${pane || `<div class="a-detail scroll">
+      <div class="a-detail-head">
+        <div class="row"><span class="title grow ellipsis">${a.label}</span>${sel ? `<span class="pill on">Used for new sessions</span>` : ""}</div>
+        <div class="small muted">${a.email || "No email yet"} · ${a.auth === "saved" ? "signed in" : "sign-in required"}</div>
+      </div>
+      <div class="a-actions">
+        ${a.auth === "saved"
+          ? `<button class="primary" data-newwith="${key(a)}">New session with this account</button>
+             ${sel ? "" : `<button data-act="select">Use for new sessions</button>`}`
+          : `<button class="primary" data-act="Sign in ${a.label} via browser">Sign in…</button>`}
+        <div class="grow"></div>
+        <button class="ghost" data-act="Refresh usage for ${a.label}">Refresh usage</button>
+        ${a.id ? `<button class="ghost" data-act="Check access (uses quota)…">Check access…</button>
+        <button class="ghost danger" data-act="Remove ${a.label}…">Remove…</button>` : ""}
+      </div>
+      <div class="a-section"><p class="section-title">Usage</p>
+        ${a.usage ? a.usage.map((w) => `<div class="quota"><span>${w.label}</span>${bar(w.used)}<span>${free(w)}</span><span class="tiny muted reset">${resets(w.reset)}</span></div>`).join("")
+          : `<div class="muted small">Sign in to see limits.</div>`}
+      </div>
+      <div class="a-section" style="border-bottom:0"><p class="section-title">Running sessions · ${a.sessions.length}</p>${sessions}</div>
+    </div>`}
+  </div><div class="toast"></div>`;
+}
+
+// ---------- Variant B: drill-in stack (list → account → session) ----------
+function VariantB() {
+  const crumbs = [`<a data-nav="list">Accounts</a>`];
+  const a = acc(S.focus);
+  if (S.bView !== "list") crumbs.push(S.bView === "account" ? `<span>${a.label}</span>` : `<a data-nav="account">${a.label}</a>`);
+  if (S.bView === "session") crumbs.push(`<span>Session</span>`);
+  const head = `<div class="head"><div class="b-crumbs">${crumbs.join(`<span class="muted">›</span>`)}</div><div class="grow"></div>
+    <button class="ghost" data-act="close">Close <kbd>Esc</kbd></button></div>`;
+
+  if (S.bView === "list") {
+    const cards = S.accounts.map((x) => {
+      const k = key(x);
+      return `<div class="b-card" data-open="${k}">
+        <div class="b-radio ${k === S.selected ? "on" : ""}" data-pick="${k}" title="Use for new sessions"></div>
+        <div class="grow"><div class="row"><b class="ellipsis">${x.label}</b>
+          ${x.sessions.length ? `<span class="pill">${x.sessions.length} running</span>` : ""}</div>
+          <div class="small muted ellipsis">${x.auth === "saved" ? x.email : `<span style="color:var(--warn)">Sign-in required</span>`}</div></div>
+        <div class="b-q" style="display:grid;gap:5px">${x.usage ? x.usage.map((w) => `<div class="row tiny"><span style="width:84px" class="muted ellipsis">${w.label}</span>${bar(w.used, "100px")}</div>`).join("") : ""}</div>
+        <div class="muted" style="font-size:18px;text-align:center">›</div>
+      </div>`;
+    }).join("");
+    return head + `<div class="b-body scroll"><div class="small muted">The selected radio is used for new Claude sessions. Open a card for details.</div>${cards}</div>
+      <div class="b-foot"><button class="primary" data-act="Launch Claude with the selected account">Launch selected in new tab</button>
+        <div class="grow"></div><button class="ghost" data-act="Refresh all accounts">Refresh</button>
+        <button class="ghost" data-act="Show removed accounts">Removed…</button><button data-act="Add account…">+ Add account</button></div>
+      <div class="toast"></div>`;
+  }
+
+  if (S.bView === "account") {
+    const sel = key(a) === S.selected;
+    const tiles = a.usage ? a.usage.map((w) => `<div class="b-tile"><div class="small muted">${w.label}</div>
+      <div class="big" style="color:${color(w.used)}">${free(w).replace(" free", "")}</div>${bar(w.used)}<div class="tiny muted">free · ${resets(w.reset) || "not started"}</div></div>`).join("")
+      : `<div class="b-tile" style="grid-column:1/-1"><b>Sign-in required</b><div class="small muted">Open the browser to sign in to this profile.</div><div><button class="primary" data-act="Sign in via browser">Sign in…</button></div></div>`;
+    const sessions = a.sessions.map((s) => `<div class="sess" data-bsession="${s.id}"><span class="dot" style="background:${sessDot(s)}"></span>
+      <div class="grow"><div class="ellipsis">${s.title}</div><div class="tiny muted ellipsis">${s.cwd}</div></div><span class="tiny muted">${s.state} · ${s.age} ›</span></div>`).join("")
+      || `<div class="small muted">No running sessions.</div>`;
+    return head + `<div class="b-body scroll">
+      <div class="row"><div class="grow"><div style="font-size:20px;font-weight:600">${a.label}</div><div class="small muted">${a.email || "No email yet"}</div></div>
+        ${sel ? `<span class="pill on">Used for new sessions</span>` : `<button data-act="select">Use for new sessions</button>`}</div>
+      <div class="b-tiles">${tiles}</div>
+      <div><p class="section-title">Running sessions</p>${sessions}</div>
+    </div>
+    <div class="b-foot">${a.auth === "saved" ? `<button class="primary" data-act="Launch with ${a.label}">Launch in new tab</button>` : ""}
+      <button class="ghost" data-act="Refresh usage">Refresh usage</button>
+      <div class="grow"></div>
+      ${a.id ? `<button class="ghost" data-act="Sign in again">Sign in again</button><button class="ghost" data-act="Check access (uses quota)…">Check access…</button>
+      <button class="ghost danger" data-act="Remove ${a.label}…">Remove…</button>` : ""}</div><div class="toast"></div>`;
+  }
+
+  const s = findSession(S.openSession);
+  const targets = S.accounts.filter((x) => key(x) !== s.account && x.auth === "saved").map((x) => {
+    const k = key(x);
+    return `<div class="b-target ${S.resumeTarget === k ? "on" : ""}" data-target="${k}"><div><b>${x.label}</b><div class="tiny muted">${headroom(x)}% headroom</div></div>${bar(100 - headroom(x), "90px")}</div>`;
+  }).join("");
+  return head + `<div class="b-body scroll">
+    <div><div style="font-size:20px;font-weight:600">${s.title}</div><div class="small muted">${s.cwd} · ${s.id} · ${s.state}, ${s.age}</div></div>
+    <div class="b-sheet"><p class="section-title" style="margin:0">Continue this conversation with another account</p>
+      <div class="small muted">Exits nothing automatically: stop the running session first, then resume it in a new tab with the chosen account.</div>
+      <div style="display:grid;gap:6px">${targets}</div>
+      <div class="row"><button class="primary" data-act="Resume ${s.id} with ${acc(S.resumeTarget)?.label}">Resume in new tab</button>
+        <button class="ghost" data-act="Copy: claude --resume ${s.id}">Copy command</button></div></div>
+  </div><div class="b-foot"><button data-act="Focus its tab">Go to running tab</button></div><div class="toast"></div>`;
+}
+
+// ---------- Variant C: sessions-first workspace with tabs ----------
+function VariantC() {
+  const tabs = `<div class="c-tabs">
+    <div class="c-tab ${S.cTab === "sessions" ? "on" : ""}" data-tab="sessions">Sessions · ${allSessions().length}</div>
+    <div class="c-tab ${S.cTab === "accounts" ? "on" : ""}" data-tab="accounts">Accounts · ${S.accounts.length}</div></div>`;
+  const strip = `<div class="c-strip">${S.accounts.map((x) => {
+    const k = key(x); const h = headroom(x);
+    return `<div class="c-chip ${S.cFilter === k ? "on" : ""}" data-filter="${k}">
+      <div class="row"><b class="grow ellipsis">${x.label}</b>${k === S.selected ? `<span class="pill on">new</span>` : ""}</div>
+      ${x.usage ? bar(100 - h) + `<div class="tiny muted">${h}% headroom · ${x.sessions.length} running</div>` : `<div class="tiny" style="color:var(--warn)">Sign-in required</div>`}</div>`;
+  }).join("")}</div>`;
+
+  if (S.cTab === "accounts") {
+    const rows = S.accounts.map((x) => {
+      const k = key(x);
+      return `<div class="c-acc-row"><div class="b-radio ${k === S.selected ? "on" : ""}" data-pick="${k}"></div>
+        <div><b>${x.label}</b><div class="tiny muted">${x.auth === "saved" ? x.email : "Sign-in required"}</div></div>
+        ${(x.usage || [null, null, null]).map((w) => w ? `<div style="display:grid;gap:3px"><span class="tiny muted">${w.label} · ${free(w)}</span>${bar(w.used)}</div>` : `<div></div>`).join("")}
+        <div class="row">${x.auth === "saved" ? `<button class="ghost" data-act="Refresh usage">↻</button>` : `<button data-act="Sign in…">Sign in</button>`}
+          ${x.id ? `<button class="ghost" data-act="More: sign in again · check access · remove">⋯</button>` : ""}</div></div>`;
+    }).join("");
+    return header("Claude Accounts") + tabs + `<div class="scroll" style="flex:1">${rows}</div>
+      <div class="b-foot"><span class="small muted">Radio = account for new sessions</span><div class="grow"></div>
+        <button class="ghost" data-act="Show removed accounts">Removed…</button><button class="ghost" data-act="Refresh all">Refresh all</button><button data-act="Add account…">+ Add account</button></div><div class="toast"></div>`;
+  }
+
+  const list = allSessions().filter((s) => S.cFilter === "all" || s.account === S.cFilter);
+  const s = findSession(S.openSession) || null;
+  const rows = list.map((x) => `<div class="c-tr ${s && s.id === x.id ? "on" : ""}" data-csession="${x.id}">
+      <span class="dot" style="background:${sessDot(x)}"></span>
+      <div class="grow"><div class="ellipsis">${x.title}</div><div class="tiny muted ellipsis">${x.cwd}</div></div>
+      <span class="small muted ellipsis">${x.accountLabel}</span><span class="tiny muted">${x.state} · ${x.age}</span></div>`).join("")
+    || `<div class="small muted" style="padding:14px 18px">No sessions for this account.</div>`;
+  const inspector = s ? `<div><div style="font-weight:600">${s.title}</div><div class="tiny muted">${s.id} · ${s.cwd}</div></div>
+      <div class="small">Running as <b>${s.accountLabel}</b></div>
+      <button data-act="Focus its tab">Go to tab</button>
+      <div><p class="section-title">Continue with</p><div style="display:grid;gap:6px">
+        ${S.accounts.filter((x) => key(x) !== s.account && x.auth === "saved").map((x) => `<button style="text-align:left" data-act="Resume ${s.id} with ${x.label}">${x.label} <span class="muted tiny">· ${headroom(x)}% headroom</span></button>`).join("")}
+      </div></div>
+      <button class="ghost" data-act="Copy: claude --resume ${s.id}">Copy resume command</button>`
+    : `<div class="small muted">Select a session to go to it or continue it with another account.</div>
+       <div><p class="section-title">New session</p><button class="primary" data-act="Launch with ${acc(S.selected).label}">Launch with ${acc(S.selected).label}</button></div>`;
+  return header("Claude Accounts") + tabs + `<div class="c-body">
+    <div><div class="row" style="padding:12px 18px 0"><span class="small muted grow">Filter by account · click again to clear</span></div>${strip}</div>
+    <div class="c-split"><div class="c-table scroll">${rows}</div><div class="c-inspector scroll">${inspector}</div></div>
+  </div><div class="toast"></div>`;
+}
+
+// ---------- wiring ----------
+const VARIANTS = { A: ["Master–detail", VariantA], B: ["Drill-in stack", VariantB], C: ["Sessions-first tabs", VariantC] };
+const ids = Object.keys(VARIANTS);
+let current = new URLSearchParams(location.search).get("variant");
+if (!VARIANTS[current]) current = "A";
+
+function render() {
+  document.getElementById("dialog").innerHTML = VARIANTS[current][1]();
+  document.getElementById("label").textContent = `${current} · ${VARIANTS[current][0]}  —  focus: ${acc(S.focus).label}, new sessions: ${acc(S.selected).label}${S.openSession ? ", session: " + S.openSession : ""}`;
+}
+function go(step) {
+  current = ids[(ids.indexOf(current) + step + ids.length) % ids.length];
+  const u = new URL(location); u.searchParams.set("variant", current); history.replaceState(null, "", u);
+  render();
+}
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+document.getElementById("theme").onclick = () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark";
+};
+document.addEventListener("keydown", (e) => {
+  if (current === "A" && e.key === "Escape" && S.aMode !== "detail") { S.aMode = "detail"; return render(); }
+  if (current === "A" && e.key === "Enter" && e.target.id === "add-name") { S.add.name = e.target.value.trim(); S.add.step = "browser"; return render(); }
+  if (e.target.closest("input,textarea,[contenteditable]")) return;
+  if (current === "A" && (e.metaKey || e.ctrlKey) && e.key === "n") { e.preventDefault(); return openMode("new"); }
+  if (current === "A" && S.aMode === "new" && e.key === "Enter") return stub("Launch new session");
+  if (e.key === "ArrowLeft") go(-1);
+  else if (e.key === "ArrowRight") go(1);
+  else if (current === "A" && S.aMode === "detail" && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+    const i = S.accounts.findIndex((a) => key(a) === S.focus);
+    S.focus = key(S.accounts[(i + (e.key === "ArrowDown" ? 1 : S.accounts.length - 1)) % S.accounts.length]);
+    S.openSession = null; render(); e.preventDefault();
+  } else if (current === "A" && S.aMode === "detail" && e.key === "Enter") { S.selected = S.focus; render(); toast("Selected for new sessions"); }
+});
+
+function openMode(mode, account) {
+  S.aMode = mode;
+  if (mode === "new") S.ns = { account: account || S.selected, where: "space", folder: RECENT[1], start: "new", resume: null, remember: false };
+  if (mode === "add") S.add = { step: "name", name: "" };
+  render();
+  document.getElementById("add-name")?.focus();
+}
+document.getElementById("dialog").addEventListener("click", (e) => {
+  const t = (sel) => e.target.closest(sel);
+  let el;
+  if ((el = t("[data-amode]"))) { openMode(el.dataset.amode); return; }
+  if ((el = t("[data-newwith]"))) { openMode("new", el.dataset.newwith); return; }
+  if ((el = t("[data-ns]"))) { const [g, ...v] = el.dataset.ns.split(":"); S.ns[g] = v.join(":"); if (g === "start" && S.ns.start !== "resume") S.ns.resume = null; return render(); }
+  if ((el = t("[data-ns-remember]"))) { S.ns.remember = el.checked; return; }
+  if ((el = t("[data-add]"))) { const n = document.getElementById("add-name"); if (n) S.add.name = n.value.trim(); S.add.step = el.dataset.add; return render(); }
+  if ((el = t("[data-pick]"))) { e.stopPropagation(); const k = el.dataset.pick; if (acc(k).auth !== "saved") return toast("Sign in first"); S.selected = k; render(); return toast(`New sessions will use ${acc(k).label}`); }
+  if ((el = t("[data-act]"))) {
+    const act = el.dataset.act;
+    if (act === "close") return toast("Stub: close dialog");
+    if (act === "select") { S.selected = S.focus; render(); return toast("Selected for new sessions"); }
+    return stub(act);
+  }
+  if ((el = t("[data-focus]"))) { S.focus = el.dataset.focus; S.openSession = null; S.aMode = "detail"; return render(); }
+  if ((el = t("[data-session]"))) { S.openSession = S.openSession === el.dataset.session ? null : el.dataset.session; return render(); }
+  if ((el = t("[data-open]"))) { S.focus = el.dataset.open; S.bView = "account"; return render(); }
+  if ((el = t("[data-nav]"))) { S.bView = el.dataset.nav; return render(); }
+  if ((el = t("[data-bsession]"))) { S.openSession = el.dataset.bsession; S.bView = "session";
+    const other = S.accounts.find((x) => key(x) !== S.focus && x.auth === "saved"); S.resumeTarget = other && key(other); return render(); }
+  if ((el = t("[data-target]"))) { S.resumeTarget = el.dataset.target; return render(); }
+  if ((el = t("[data-tab]"))) { S.cTab = el.dataset.tab; return render(); }
+  if ((el = t("[data-filter]"))) { S.cFilter = S.cFilter === el.dataset.filter ? "all" : el.dataset.filter; S.openSession = null; return render(); }
+  if ((el = t("[data-csession]"))) { S.openSession = S.openSession === el.dataset.csession ? null : el.dataset.csession; return render(); }
+});
+render();
+</script>
+</body>
+</html>
