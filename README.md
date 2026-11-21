@@ -327,6 +327,9 @@ history and backups remain; disabling the UI does not undo a history migration.
 - Menu missing: distinguish Herdr TUI configuration from native Herdr app configuration.
 - Wrong account: check the launcher on PATH. An explicit `CLAUDE_CONFIG_DIR`
   overrides ordinary launches; `claude-accounts launch UUID|system` pins a profile.
+- “Launch” in Herdr opens a shell instead of Claude: your `~/.zshrc` probably
+  starts another shell unconditionally. See the [FAQ](#faq) entry about
+  launching a plain shell.
 - New terminals switch correctly but an old tab resumes with the old account:
   that shell may still have its pre-install PATH. Check `type -a claude`; the
   manager launcher must come first. In fish, run
@@ -389,6 +392,30 @@ No. Claude manages authentication; private profile data lives outside the source
 checkout. The manager does not copy OAuth credentials or Keychain entries
 between accounts. Read [Data and privacy](#data-and-privacy) before sharing logs
 or backups.
+
+</details>
+
+<details>
+<summary><strong>“Launch” opens a plain shell instead of Claude. What is wrong?</strong></summary>
+
+This happens when your `~/.zshrc` starts another shell (fish, nushell, bash…)
+unconditionally. Herdr runs a tab's command through your login shell as
+`zsh -lic '"$@"; exec "$0" -li' … claude-accounts launch ACCOUNT`, so an
+interactive `~/.zshrc` runs first. The other shell takes over before the
+launch command runs, and a `claude` you type there uses the default account
+instead of the one you picked.
+
+Start the other shell only in a plain interactive zsh, when no command was
+passed. In `~/.zshrc`, replace a line such as `fish` or `exec fish` with:
+
+```sh
+[[ -z $ZSH_EXECUTION_STRING ]] && fish
+```
+
+`$ZSH_EXECUTION_STRING` is non-empty only when zsh runs a command (`zsh -c`).
+Ordinary terminal tabs still open your preferred shell. Close tabs that
+already opened the wrong shell and launch again; `/status` in the new tab shows
+the chosen account.
 
 </details>
 
